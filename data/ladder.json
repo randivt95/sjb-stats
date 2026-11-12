@@ -1,0 +1,45 @@
+{
+  "_comment": "League ladder / standings, hand-entered per season from the official league table. The exports only contain SJB's own games (opponents are a totals line), so the ladder can't be derived and must be supplied here. Keyed by season. 'teams' is kept in the official published order (rank = position in the list) so tiebreakers match the source exactly. Columns mirror the league table: p=played, pts_avg=points average (pts/p, the primary ranking), pts=competition points, pct=percentage (points-for/against x100), w/l/d, bye, f=points for, a=points against, forf=forfeits, disq=disqualifications, adj=adjustments. For an in-progress season, paste the latest official ladder into 'teams' and update 'updated' whenever a new one is published.",
+  "season-1": {
+    "updated": "2026-09-06",
+    "status": "final",
+    "ranked_by": "Points average, then percentage, then points for",
+    "note": "Calculated from Round 1. Shake Jelly Balls joined the league after it had started and so played fewer games than most teams — the ladder ranks on points average (points ÷ games played), which puts every team on an even footing regardless of games played.",
+    "teams": [
+      {"team": "Big Fellas", "p": 21, "pts_avg": 2.61, "pts": 55, "pct": 125.22, "w": 17, "l": 4, "d": 0, "bye": 0, "f": 869, "a": 694, "forf": 0, "disq": 0, "adj": 0},
+      {"team": "Shake Jelly Balls", "p": 18, "pts_avg": 2.5, "pts": 45, "pct": 132.37, "w": 13, "l": 4, "d": 1, "bye": 1, "f": 826, "a": 624, "forf": 0, "disq": 0, "adj": 0},
+      {"team": "The Daddies", "p": 21, "pts_avg": 2.38, "pts": 50, "pct": 123.97, "w": 14, "l": 6, "d": 1, "bye": 0, "f": 900, "a": 726, "forf": 0, "disq": 0, "adj": 0},
+      {"team": "Sac Kings", "p": 19, "pts_avg": 2.21, "pts": 42, "pct": 101.33, "w": 12, "l": 6, "d": 0, "bye": 2, "f": 688, "a": 679, "forf": 1, "disq": 0, "adj": 0},
+      {"team": "Big Bhad Ballers", "p": 17, "pts_avg": 2.17, "pts": 37, "pct": 104.13, "w": 10, "l": 7, "d": 0, "bye": 1, "f": 706, "a": 678, "forf": 0, "disq": 0, "adj": 0},
+      {"team": "Sunday Night Glory", "p": 21, "pts_avg": 2.14, "pts": 45, "pct": 115.69, "w": 12, "l": 9, "d": 0, "bye": 0, "f": 951, "a": 822, "forf": 0, "disq": 0, "adj": 0},
+      {"team": "CBN Ballers", "p": 19, "pts_avg": 2.1, "pts": 40, "pct": 93.49, "w": 10, "l": 8, "d": 1, "bye": 2, "f": 776, "a": 830, "forf": 0, "disq": 0, "adj": 0},
+      {"team": "Melbourne Uni 5M", "p": 19, "pts_avg": 2.05, "pts": 39, "pct": 104.99, "w": 10, "l": 9, "d": 0, "bye": 2, "f": 716, "a": 682, "forf": 0, "disq": 0, "adj": 0},
+      {"team": "HOOPS Hunters", "p": 21, "pts_avg": 2.0, "pts": 42, "pct": 104.25, "w": 11, "l": 7, "d": 1, "bye": 0, "f": 785, "a": 753, "forf": 2, "disq": 0, "adj": 0},
+      {"team": "Alchemy", "p": 21, "pts_avg": 1.95, "pts": 41, "pct": 100.79, "w": 10, "l": 11, "d": 0, "bye": 0, "f": 898, "a": 891, "forf": 0, "disq": 0, "adj": 0},
+      {"team": "Razorbacks", "p": 20, "pts_avg": 1.7, "pts": 34, "pct": 103.63, "w": 7, "l": 13, "d": 0, "bye": 0, "f": 713, "a": 688, "forf": 0, "disq": 0, "adj": 0},
+      {"team": "RMIT 5", "p": 20, "pts_avg": 1.6, "pts": 32, "pct": 78.75, "w": 6, "l": 14, "d": 0, "bye": 0, "f": 708, "a": 899, "forf": 0, "disq": 0, "adj": 0},
+      {"team": "Melbourne Uni 6M", "p": 20, "pts_avg": 1.2, "pts": 24, "pct": 65.83, "w": 2, "l": 18, "d": 0, "bye": 0, "f": 632, "a": 960, "forf": 0, "disq": 0, "adj": 0}
+    ]
+  },
+  "season-2": {
+    "updated": "2026-11-11",
+    "status": "in_progress",
+    "ranked_by": "Points average, then percentage, then points for",
+    "note": "Live from the official PlayHQ ladder (MCBA Sunday Men C Grade 2, Summer 2026/27), refreshed on each build.",
+    "source": {"playhq_grade_id": "f7e657dc", "tenant": "basketball-victoria"},
+    "teams": [
+      {"team": "Shake Jelly Balls", "p": 3, "pts_avg": 2.33, "pts": 7, "pct": 108.77, "w": 2, "l": 1, "d": 0, "bye": 0, "f": 124, "a": 114, "forf": 0, "disq": 0, "adj": 0},
+      {"team": "Ronins", "p": 7, "pts_avg": 2.29, "pts": 16, "pct": 106.1, "w": 4, "l": 2, "d": 1, "bye": 0, "f": 261, "a": 246, "forf": 0, "disq": 0, "adj": 0},
+      {"team": "KOS", "p": 7, "pts_avg": 2.14, "pts": 15, "pct": 101.97, "w": 4, "l": 3, "d": 0, "bye": 0, "f": 259, "a": 254, "forf": 0, "disq": 0, "adj": 0},
+      {"team": "The Beers", "p": 7, "pts_avg": 2, "pts": 14, "pct": 122.17, "w": 3, "l": 3, "d": 1, "bye": 0, "f": 270, "a": 221, "forf": 0, "disq": 0, "adj": 0},
+      {"team": "Licola Lobsters", "p": 7, "pts_avg": 2, "pts": 14, "pct": 106.37, "w": 3, "l": 3, "d": 1, "bye": 0, "f": 284, "a": 267, "forf": 0, "disq": 0, "adj": 0},
+      {"team": "Gizmo's Heroes", "p": 7, "pts_avg": 2, "pts": 14, "pct": 103.75, "w": 4, "l": 2, "d": 0, "bye": 0, "f": 249, "a": 240, "forf": 1, "disq": 0, "adj": 0},
+      {"team": "ISO Gang", "p": 7, "pts_avg": 2, "pts": 14, "pct": 102.14, "w": 3, "l": 3, "d": 1, "bye": 0, "f": 287, "a": 281, "forf": 0, "disq": 0, "adj": 0},
+      {"team": "Melbourne Uni 3M", "p": 4, "pts_avg": 2, "pts": 8, "pct": 64.74, "w": 2, "l": 2, "d": 0, "bye": 0, "f": 112, "a": 173, "forf": 0, "disq": 0, "adj": 0},
+      {"team": "Coin Tossers", "p": 7, "pts_avg": 1.86, "pts": 13, "pct": 101.85, "w": 3, "l": 4, "d": 0, "bye": 0, "f": 276, "a": 271, "forf": 0, "disq": 0, "adj": 0},
+      {"team": "Dunk, Dunk, Goose!", "p": 7, "pts_avg": 1.86, "pts": 13, "pct": 85.71, "w": 3, "l": 2, "d": 1, "bye": 0, "f": 210, "a": 245, "forf": 1, "disq": 0, "adj": 0},
+      {"team": "Warriors", "p": 7, "pts_avg": 1.71, "pts": 12, "pct": 100.94, "w": 2, "l": 4, "d": 1, "bye": 0, "f": 323, "a": 320, "forf": 0, "disq": 0, "adj": 0},
+      {"team": "The Fakers", "p": 7, "pts_avg": 1.43, "pts": 10, "pct": 86.45, "w": 2, "l": 4, "d": 0, "bye": 0, "f": 236, "a": 273, "forf": 1, "disq": 0, "adj": 0}
+    ]
+  }
+}

@@ -1,0 +1,4 @@
+{
+  "_comment": "Weeks the LEAGUE held no round at all (not a bye — nobody played). Round numbers are weeks-since-the-season-opener, so a week with no scheduled round would otherwise inflate every later round by one. List any date inside such a week, per season, and the build subtracts it. A normal bye (the league played but SJB didn't) is NOT listed here — that week really is a round SJB missed.",
+  "season-1": ["2026-06-07"]
+}

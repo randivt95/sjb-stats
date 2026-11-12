@@ -1,0 +1,13 @@
+{
+  "_comment": "Per-player bio for the stats site, keyed by the box-score name. 'position' (PG/SG/SF/PF/C or hyphenated), 'nickname' (shown under the name, BBref-style), 'jersey' (squad number, e.g. 22 — shown as 'No.' on the profile header), and optional 'full_name' override. Leave a value as \"\" to hide it. Run build.bat after editing.",
+
+  "H. Lin":         { "position": "C", "nickname": "Flying Dragon", "jersey": 22 },
+  "V. Kanathigoda": { "position": "PG/SG/SF", "nickname": "", "jersey": 1 },
+  "M. Subramanian": { "position": "SG/SF", "nickname": "Submarine", "jersey": 77 },
+  "S. King":        { "position": "SF/PF/C", "nickname": "", "jersey": 0 },
+  "R. Tennekoon":   { "position": "SG", "nickname": "", "jersey": 95 },
+  "L. Pham":        { "position": "PG", "nickname": "The Instigator", "jersey": "45" },
+  "J. Paul":        { "position": "PF/C", "nickname": "", "jersey": 6 },
+  "J. Nguyen":      { "position": "SG/SF", "nickname": "" },
+  "E. Dzousa":      { "position": "C", "nickname": "" }
+}

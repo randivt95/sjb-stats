@@ -1,0 +1,20 @@
+[
+  {
+    "season": "season-1",
+    "date": "2026-05-24",
+    "opponent": "Rainier Beach High School",
+    "result": "W",
+    "us": 20,
+    "them": 0,
+    "note": "Forfeit win — Rainier Beach High School didn't field a team and later withdrew from the league. The 20-0 is the league's nominal forfeit score, recorded for the standings only: it counts as a win but is kept out of points for/against, averages and ratings, so no player or team stats are affected."
+  },
+  {
+    "season": "season-1",
+    "date": "2026-07-19",
+    "opponent": "Hoops Hunters",
+    "result": "W",
+    "us": 20,
+    "them": 0,
+    "note": "Forfeit win — Hoops Hunters forfeited this round. The 20-0 is the league's nominal forfeit score, recorded for the standings only: it counts as a win but is kept out of points for/against, averages and ratings, so no player or team stats are affected. (SJB also played Hoops Hunters for real in Round 8, a 44-46 loss.)"
+  }
+]

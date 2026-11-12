@@ -1,0 +1,18 @@
+{
+  "_comment": "An external (non-SJB) season for players who also played for another team. Shown on those players' pages as an extra season + folded into their career, BBref-style; never counts toward SJB's record, leaders or team stats. Keyed by SJB box-score name. Counting-stat totals come from the per-stat tabs (each over its own tracked-game count); shooting + blk/stl come from the box-scores tab (over box_games). Untracked categories (OREB/DREB split, fouls, turnovers, minutes, +/-) are left out and render as '-'.",
+
+  "season_label": "2024",
+  "team": "Fluffy Teddy Bears",
+  "sort_date": "2024-06-01",
+
+  "players": {
+    "R. Tennekoon": { "appearances": 14, "pts": 168, "reb_games": 8, "reb": 51, "ast_games": 8, "ast": 6,
+                      "box_games": 8, "box_pts": 106, "fgm": 41, "fga": 114, "tpm": 19, "tpa": 61, "ftm": 5, "fta": 5, "blk": 3, "stl": 11 },
+    "J. Paul":      { "appearances": 15, "pts": 71, "reb_games": 8, "reb": 63, "ast_games": 9, "ast": 12,
+                      "box_games": 9, "box_pts": 56, "fgm": 26, "fga": 58, "tpm": 1, "tpa": 6, "ftm": 3, "fta": 11, "blk": 3, "stl": 5 },
+    "S. King":      { "appearances": 15, "pts": 106, "reb_games": 9, "reb": 45, "ast_games": 10, "ast": 19,
+                      "box_games": 10, "box_pts": 74, "fgm": 29, "fga": 66, "tpm": 3, "tpa": 10, "ftm": 16, "fta": 27, "blk": 1, "stl": 4 },
+    "H. Lin":       { "appearances": 5, "pts": 53, "reb_games": 4, "reb": 42, "ast_games": 5, "ast": 8,
+                      "box_games": 5, "box_pts": 53, "fgm": 22, "fga": 58, "tpm": 2, "tpa": 11, "ftm": 7, "fta": 12, "blk": 1, "stl": 4 }
+  }
+}

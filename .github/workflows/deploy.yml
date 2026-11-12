@@ -1,0 +1,51 @@
+name: Build & deploy stats site
+
+# Rebuilds site/data.json from the CSVs and deploys site/ to Cloudflare Pages.
+# Runs on every push to main, once a week to refresh the live PlayHQ ladder, and
+# on demand from the Actions tab. The committed data/ladder.json is the fallback:
+# fetch_ladder.py refreshes it in the runner only, and the result is discarded
+# after deploy (never committed back), so the repo copy stays the last-known-good.
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "**/*.md"          # doc-only edits don't need a redeploy
+  schedule:
+    - cron: "0 21 * * 0"   # Sun 21:00 UTC = Mon 08:00 Melbourne (AEDT) — weekly ladder refresh
+  workflow_dispatch: {}    # manual "Run workflow" button
+
+permissions:
+  contents: read
+
+concurrency:              # never let two deploys race; newest wins
+  group: deploy
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # Pull the live league ladder into data/ladder.json (runner-only). Non-fatal:
+      # if PlayHQ is unreachable, the committed ladder.json is used instead.
+      - name: Refresh ladder (best-effort)
+        run: python server/fetch_ladder.py
+        continue-on-error: true
+
+      # Parse + validate the CSVs and write site/data.json. Fails the run (no deploy)
+      # if a reconciliation check fails, so a bad commit can't publish broken data.
+      - name: Build data.json
+        run: python server/build_site.py
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy site --project-name=sjb-stats --branch=main

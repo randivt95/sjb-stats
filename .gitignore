@@ -1,0 +1,15 @@
+# Generated build output — CI (and local build.bat) regenerate this every run.
+site/data.json
+
+# Local service logs from the old self-hosted setup.
+logs/
+
+# Windows-only service binary (NSSM) — not needed in the repo or CI.
+nssm.exe
+
+# Local editor / agent session config.
+.claude/
+
+# OS cruft.
+Thumbs.db
+.DS_Store

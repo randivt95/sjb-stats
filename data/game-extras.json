@@ -1,0 +1,48 @@
+{
+  "_comment": "Per-game extras hand-entered for games whose league export was incomplete — keyed by game id (<date>-<opponent-slug>). 'half_scores' feeds the By-half box when there's no play-by-play to derive it from; 'scoring' is the made-shot breakdown (two=2pt makes, three=3pt makes, ft=free-throw makes) shown on the game page as makes-only. 'penalty_points' ({us, them, note}) are team points on the scoreboard that belong to no player — e.g. league fouls/penalties applied before tip-off — added on top of the on-court box to make the final score, counted in the result and points for/against but kept out of shooting, ratings and every player stat. 'stage' ({label, short} or a plain string) marks a finals/playoff game: it is labelled by its stage (e.g. 'Semi-Final' / 'SF') instead of a weekly round number, since it isn't part of the regular-season ladder. None of these touch season shooting totals. The build checks they all reconcile to the box points.",
+  "2026-09-13-the-daddies": {
+    "stage": { "label": "Semi-Final", "short": "SF" }
+  },
+  "2026-07-05-big-fellas": {
+    "penalty_points": {
+      "us": 5,
+      "them": 6,
+      "note": "Pre-game team penalties — the scoreboard was set to 6-5 Big Fellas before tip-off (league fouls/penalties on both teams)."
+    }
+  },
+  "2026-08-30-sunday-night-glory": {
+    "penalty_points": {
+      "us": 0,
+      "them": 2,
+      "note": "Pre-game team penalties — the scoreboard was set to 2-0 Sunday Night Glory before tip-off (league penalties against SJB)."
+    }
+  },
+  "2026-08-16-sac-kings": {
+    "penalty_points": {
+      "us": 7,
+      "them": 0,
+      "note": "Pre-game team penalties — the scoreboard was set to 7-0 Shake Jelly Balls before tip-off (league penalties against Sac Kings)."
+    }
+  },
+  "2026-08-02-big-bhad-ballers": {
+    "half_scores": [
+      { "half": 1, "us": 29, "them": 15 },
+      { "half": 2, "us": 23, "them": 27 }
+    ]
+  },
+  "2026-10-11-helix": {
+    "half_scores": [
+      { "half": 1, "us": 40, "them": 26 },
+      { "half": 2, "us": 23, "them": 11 }
+    ],
+    "scoring": {
+      "S. King":        { "two": 2, "three": 0, "ft": 1 },
+      "V. Kanathigoda": { "two": 3, "three": 1, "ft": 1 },
+      "J. Paul":        { "two": 3, "three": 0, "ft": 0 },
+      "H. Lin":         { "two": 8, "three": 0, "ft": 0 },
+      "L. Pham":        { "two": 2, "three": 0, "ft": 0 },
+      "M. Subramanian": { "two": 7, "three": 0, "ft": 1 },
+      "R. Tennekoon":   { "two": 2, "three": 1, "ft": 0 }
+    }
+  }
+}
