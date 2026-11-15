@@ -2238,15 +2238,13 @@ def compute_records(games, players, team_by_season, seasons):
 def compute_milestones(players):
     """Record watch — each core player's nearest upcoming career round-number
     milestone (across points, rebounds, assists and games played), closest first."""
-    STEPS = [("pts", "points", 50), ("reb", "rebounds", 50),
-             ("ast", "assists", 25), ("games", "games", 25)]
+    STEPS = [("pts", "points", 50), ("reb", "rebounds", 50), ("ast", "assists", 25)]
     out = []
     for p in players:
         if not p.get("core"):
             continue
         tot = p.get("totals") or {}
-        vals = {"pts": tot.get("pts"), "reb": tot.get("reb"),
-                "ast": tot.get("ast"), "games": p.get("games")}
+        vals = {"pts": tot.get("pts"), "reb": tot.get("reb"), "ast": tot.get("ast")}
         best = None
         for key, label, step in STEPS:
             cur = vals.get(key)

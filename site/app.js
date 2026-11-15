@@ -1142,17 +1142,6 @@ function viewTeam() {
     <div class="tile"><div class="k">% pts from 3</div><div class="v">${n(adv.pct_pts_from_3)}<small>%</small></div></div>
   </div>
 
-  ${(t.sos && t.sos.grades && t.sos.grades.length) ? `<div class="card"><h2>Strength of schedule <span class="hint">opponent-adjusted, from the ladder</span></h2>
-    ${t.sos.grades.map(gr => `
-      ${gr.label ? `<div style="font-weight:700;font-size:13px;margin:12px 0 6px;color:var(--muted)">${esc(gr.label)} <span style="font-weight:400">· ${gr.games} rated games</span></div>` : ""}
-      <div class="tiles">
-        <div class="tile"><div class="k">Avg margin</div><div class="v">${gr.avg_margin > 0 ? "+" : ""}${n(gr.avg_margin)}</div><div class="note">vs rated opponents</div></div>
-        <div class="tile"><div class="k">Strength of schedule</div><div class="v">${gr.sos > 0 ? "+" : ""}${n(gr.sos)}</div><div class="note">avg opponent rating</div></div>
-        <div class="tile hi"><div class="k">Adjusted margin</div><div class="v">${gr.adj_margin > 0 ? "+" : ""}${n(gr.adj_margin)}</div><div class="note">margin + SoS (SRS-lite)</div></div>
-      </div>`).join("")}
-    <p class="muted" style="font-size:12px;margin-top:8px">Each opponent's strength is its league average margin from the ladder; the adjusted margin adds that to SJB's own.${t.sos.grades.length > 1 ? " Split by grade — margins in different grades aren't on the same scale." : ""}</p>
-  </div>` : ""}
-
   ${(() => {
     const sbh = t.scoring_by_half, r = t.results;
     const sched = scheduleScope();
@@ -1201,6 +1190,17 @@ function viewTeam() {
       </table></div>
     </div>
   </div>
+
+  ${(t.sos && t.sos.grades && t.sos.grades.length) ? `<div class="card"><h2>Strength of schedule <span class="hint">opponent-adjusted, from the ladder</span></h2>
+    ${t.sos.grades.map(gr => `
+      ${gr.label ? `<div style="font-weight:700;font-size:13px;margin:12px 0 6px;color:var(--muted)">${esc(gr.label)} <span style="font-weight:400">· ${gr.games} rated games</span></div>` : ""}
+      <div class="tiles">
+        <div class="tile"><div class="k">Avg margin</div><div class="v">${gr.avg_margin > 0 ? "+" : ""}${n(gr.avg_margin)}</div><div class="note">vs rated opponents</div></div>
+        <div class="tile"><div class="k">Strength of schedule</div><div class="v">${gr.sos > 0 ? "+" : ""}${n(gr.sos)}</div><div class="note">avg opponent rating</div></div>
+        <div class="tile hi"><div class="k">Adjusted margin</div><div class="v">${gr.adj_margin > 0 ? "+" : ""}${n(gr.adj_margin)}</div><div class="note">margin + SoS (SRS-lite)</div></div>
+      </div>`).join("")}
+    <p class="muted" style="font-size:12px;margin-top:8px">Each opponent's strength is its league average margin from the ladder; the adjusted margin adds that to SJB's own.${t.sos.grades.length > 1 ? " Split by grade — margins in different grades aren't on the same scale." : ""}</p>
+  </div>` : ""}
 
   <div class="card"><h2>Head-to-head</h2>
     <div class="table-scroll"><table class="stat">
@@ -1308,6 +1308,18 @@ function viewRecords() {
       <div class="table-scroll"><table class="stat"><thead><tr>${["Record", "Mark", "Player", "Game"].map(h => th(h, { sortable: false })).join("")}</tr></thead>
       <tbody>${playerRows || `<tr><td class="muted" colspan="4">—</td></tr>`}</tbody></table></div>
     </div>`}
+    ${(() => {
+      const steps = [["pts", "Points", 50], ["reb", "Rebounds", 50], ["ast", "Assists", 25], ["tpm", "Threes", 10]];
+      const core = (DATA.players || []).filter(p => p.core).sort((a, b) => ((b.totals || {}).pts || 0) - ((a.totals || {}).pts || 0));
+      if (!core.length) return "";
+      const cell = (cur, step) => { const c = cur || 0, nx = (Math.floor(c / step) + 1) * step; return `<td class="num">${c} <span class="muted" style="font-size:11px">→ ${nx} <strong style="color:var(--accent)">(${nx - c})</strong></span></td>`; };
+      const rows = core.map(p => `<tr><td>${playerLink(p)}</td>${steps.map(([k, , st]) => cell((p.totals || {})[k], st)).join("")}</tr>`).join("");
+      return `<div class="card"><h2>Milestone tracker <span class="hint">career total → next round number (to go)</span></h2>
+        <div class="table-scroll"><table class="stat">
+          <thead><tr>${th("Player", { sortable: false })}${steps.map(([, lab]) => th(lab, { sortable: false })).join("")}</tr></thead>
+          <tbody>${rows}</tbody>
+        </table></div></div>`;
+    })()}
     ${footer()}`;
 }
 
@@ -1362,13 +1374,10 @@ function viewLadder() {
     <p class="muted" style="font-size:12px;margin-top:10px">${block.ranked_by ? `<strong>Ranked by:</strong> ${esc(block.ranked_by)}. ` : ""}${block.note ? esc(block.note) : ""}</p>
     </div>`;
   };
-  const children = Object.values(ladders).filter(b => b && b.parent === key && b.teams && b.teams.length);
-
   return `
   ${header}
   ${callout}
   ${ladderTableCard(L, null)}
-  ${children.map(c => ladderTableCard(c, c.grade_label || "Earlier grade")).join("")}
   <p class="muted" style="font-size:12px;margin-top:6px"><strong>PTS AVG</strong> = points ÷ games (the ranking metric); <strong>%</strong> = points for ÷ against × 100; <strong>F/A</strong> = points for / against; <strong>FORF / DISQ / ADJ</strong> = forfeits, disqualifications, adjustments. Click a column to sort.</p>
   ${footer()}`;
 }
