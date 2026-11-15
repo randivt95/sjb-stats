@@ -30,6 +30,8 @@ import urllib.request
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 LADDER = ROOT / "data" / "ladder.json"
+FIXTURES = ROOT / "data" / "fixtures.json"
+TEAM_NAME = "Shake Jelly Balls"
 ENDPOINT = "https://api.playhq.com/graphql"
 
 QUERY = (
@@ -37,6 +39,15 @@ QUERY = (
     "ladder{ standings{ team{ name } played won lost drawn byes pointsFor "
     "pointsAgainst forfeits disqualifications adjustments percentage "
     "competitionPoints pointsAverage } } } }"
+)
+
+# same grade, the fixture feed — used for the team page's forward (upcoming)
+# strength of schedule. home/away are a union, hence the inline fragments.
+FIX_QUERY = (
+    "query gradeFixture($gradeID: ID!){ discoverGradeFixture(gradeID:$gradeID){ "
+    "name games{ date status{ value } "
+    "home{ ...on DiscoverTeam{ name } ...on ProvisionalTeam{ name } } "
+    "away{ ...on DiscoverTeam{ name } ...on ProvisionalTeam{ name } } } } }"
 )
 
 _UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
@@ -70,6 +81,48 @@ def fetch_standings(grade_id, tenant):
     if not standings:
         raise RuntimeError("ladder has no standings yet")
     return standings
+
+
+def fetch_fixtures(grade_id, tenant):
+    payload = json.dumps({"operationName": "gradeFixture", "query": FIX_QUERY,
+                          "variables": {"gradeID": grade_id}}).encode("utf-8")
+    req = urllib.request.Request(ENDPOINT, data=payload, method="POST", headers={
+        "content-type": "application/json",
+        "tenant": tenant,
+        "accept": "*/*",
+        "accept-language": "en-AU,en;q=0.9",
+        "origin": "https://www.playhq.com",
+        "referer": "https://www.playhq.com/",
+        "user-agent": _UA,
+    })
+    with urllib.request.urlopen(req, timeout=25) as r:
+        data = json.loads(r.read().decode("utf-8"))
+    if data.get("errors"):
+        raise RuntimeError(f"GraphQL errors: {data['errors']}")
+    rounds = (data.get("data") or {}).get("discoverGradeFixture")
+    if rounds is None:
+        raise RuntimeError("no fixture in response")
+    return rounds
+
+
+def sjb_upcoming(rounds):
+    """SJB's not-yet-played games from the fixture feed, oldest first."""
+    tn = lambda t: (t or {}).get("name")
+    out = []
+    for rd in rounds:
+        for gm in rd.get("games") or []:
+            if (gm.get("status") or {}).get("value") != "UPCOMING":
+                continue
+            h, a = tn(gm.get("home")), tn(gm.get("away"))
+            if TEAM_NAME not in (h, a):
+                continue
+            opp = a if h == TEAM_NAME else h
+            if not opp:
+                continue
+            out.append({"round": rd.get("name"), "date": (gm.get("date") or "")[:10],
+                        "opponent": opp, "home": h == TEAM_NAME})
+    out.sort(key=lambda g: g["date"] or "")
+    return out
 
 
 def to_row(s):
@@ -127,6 +180,7 @@ def main():
     doc = json.loads(LADDER.read_text(encoding="utf-8"))
     changed = False
     saw_source = False
+    fix_updates = {}
     for season, blk in doc.items():
         if season.startswith("_") or not isinstance(blk, dict):
             continue
@@ -140,13 +194,35 @@ def main():
         tenant = src.get("tenant", "basketball-victoria")
         try:
             standings = fetch_standings(gid, tenant)
+            blk["teams"] = [to_row(s) for s in standings]
+            blk["updated"] = dt.date.today().isoformat()
+            changed = True
+            print(f"  {season}: {len(blk['teams'])} teams updated from PlayHQ grade {gid}")
         except Exception as e:
-            print(f"  {season}: fetch failed ({e}); keeping existing ladder")
-            continue
-        blk["teams"] = [to_row(s) for s in standings]
-        blk["updated"] = dt.date.today().isoformat()
-        changed = True
-        print(f"  {season}: {len(blk['teams'])} teams updated from PlayHQ grade {gid}")
+            print(f"  {season}: ladder fetch failed ({e}); keeping existing ladder")
+        # upcoming fixtures (same grade) for the forward strength-of-schedule
+        try:
+            up = sjb_upcoming(fetch_fixtures(gid, tenant))
+            fix_updates[season] = {"updated": dt.date.today().isoformat(), "upcoming": up}
+            print(f"  {season}: {len(up)} upcoming SJB games")
+        except Exception as e:
+            print(f"  {season}: fixtures fetch failed ({e}); keeping existing fixtures")
+
+    if fix_updates:
+        existing = {}
+        if FIXTURES.is_file():
+            try:
+                existing = json.loads(FIXTURES.read_text(encoding="utf-8"))
+            except Exception:
+                existing = {}
+        merged = {k: v for k, v in existing.items() if not k.startswith("_")}
+        merged.update(fix_updates)
+        out = {"_comment": "SJB's upcoming fixtures per season, pulled from PlayHQ by "
+               "fetch_ladder.py for the team page's forward strength of schedule. "
+               "Auto-generated — do not hand-edit. A failed fetch keeps the last values."}
+        out.update(merged)
+        FIXTURES.write_text(json.dumps(out, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+        print(f"Wrote {FIXTURES}")
 
     if changed:
         LADDER.write_text(dumps_ladder(doc), encoding="utf-8")

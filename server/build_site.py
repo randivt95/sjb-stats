@@ -802,6 +802,19 @@ def load_ladder():
     return out
 
 
+def load_fixtures():
+    """SJB's upcoming fixtures per season, written by fetch_ladder.py from PlayHQ.
+    Missing/bad file is fine — the forward strength of schedule just won't show."""
+    path = ROOT / "data" / "fixtures.json"
+    if not path.is_file():
+        return {}
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+    return {k: v for k, v in data.items() if not k.startswith("_") and isinstance(v, dict)}
+
+
 def build_forfeit(f):
     """A forfeit/no-box result as a game object, shaped enough to flow through the
     schedule, record and its own game page — but with level 'forfeit', empty box
@@ -2261,6 +2274,33 @@ def compute_milestones(players):
     return out
 
 
+def upcoming_strength(fix_block, ladder_block):
+    """Forward strength of schedule: the average current ladder rating (league
+    average margin) of the opponents SJB has left to play this season, from the
+    PlayHQ fixture feed. Shown only while games remain and enough are rateable."""
+    if not fix_block or not ladder_block:
+        return None
+    upcoming = fix_block.get("upcoming") or []
+    if not upcoming:
+        return None
+    ratings = {}
+    for t in ladder_block.get("teams", []):
+        p = t.get("p") or 0
+        if p:
+            ratings[t["team"].strip().lower()] = (t.get("f", 0) - t.get("a", 0)) / p
+    nxt, rated = [], []
+    for g in upcoming:
+        r = ratings.get((g.get("opponent") or "").strip().lower())
+        nxt.append({"opponent": g.get("opponent"), "round": g.get("round"),
+                    "home": g.get("home"), "rating": round(r, 1) if r is not None else None})
+        if r is not None:
+            rated.append(r)
+    if len(rated) < 2:
+        return None
+    return {"sos": round(sum(rated) / len(rated), 1), "games": len(rated),
+            "total": len(upcoming), "next": nxt[:6], "updated": fix_block.get("updated")}
+
+
 def strength_of_schedule(games, ladder, season_key):
     """Opponent-adjusted team rating (SRS-lite) from the league ladder, split by
     grade. Each opponent's strength = its league average margin ((for − against) /
@@ -2488,6 +2528,7 @@ def build():
 
     # per-season (and all-time) team stats + leaderboards, for the season switcher
     ladder = load_ladder()
+    fixtures = load_fixtures()
     scope_keys = [s["key"] for s in seasons]
     team_by_season = {"all": team}
     leaders_by_season = {"all": leaders}
@@ -2496,6 +2537,7 @@ def build():
         team_by_season[sk] = build_team(gs)
         leaders_by_season[sk] = build_leaders(season_leader_entries(players, sk))
         team_by_season[sk]["sos"] = strength_of_schedule(gs, ladder, sk)
+        team_by_season[sk]["upcoming_sos"] = upcoming_strength(fixtures.get(sk), ladder.get(sk))
 
     awards, _honors = compute_awards(games, seasons)
 

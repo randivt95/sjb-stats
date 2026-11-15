@@ -1191,15 +1191,24 @@ function viewTeam() {
     </div>
   </div>
 
-  ${(t.sos && t.sos.grades && t.sos.grades.length) ? `<div class="card"><h2>Strength of schedule <span class="hint">opponent-adjusted, from the ladder</span></h2>
-    ${t.sos.grades.map(gr => `
+  ${(t.sos && t.sos.grades || t.upcoming_sos) ? `<div class="card"><h2>Strength of schedule <span class="hint">opponent-adjusted, from the ladder</span></h2>
+    ${(t.sos && t.sos.grades) ? t.sos.grades.map(gr => `
       ${gr.label ? `<div style="font-weight:700;font-size:13px;margin:12px 0 6px;color:var(--muted)">${esc(gr.label)} <span style="font-weight:400">· ${gr.games} rated games</span></div>` : ""}
       <div class="tiles">
         <div class="tile"><div class="k">Avg margin</div><div class="v">${gr.avg_margin > 0 ? "+" : ""}${n(gr.avg_margin)}</div><div class="note">vs rated opponents</div></div>
         <div class="tile"><div class="k">Strength of schedule</div><div class="v">${gr.sos > 0 ? "+" : ""}${n(gr.sos)}</div><div class="note">avg opponent rating</div></div>
         <div class="tile hi"><div class="k">Adjusted margin</div><div class="v">${gr.adj_margin > 0 ? "+" : ""}${n(gr.adj_margin)}</div><div class="note">margin + SoS (SRS-lite)</div></div>
-      </div>`).join("")}
-    <p class="muted" style="font-size:12px;margin-top:8px">Each opponent's strength is its league average margin from the ladder; the adjusted margin adds that to SJB's own.${t.sos.grades.length > 1 ? " Split by grade — margins in different grades aren't on the same scale." : ""}</p>
+      </div>`).join("") : ""}
+    ${t.upcoming_sos ? `
+      <div style="font-weight:700;font-size:13px;margin:14px 0 6px;color:var(--muted)">Remaining schedule <span style="font-weight:400">· ${t.upcoming_sos.total} game${t.upcoming_sos.total === 1 ? "" : "s"} left</span></div>
+      <div class="tiles">
+        <div class="tile hi"><div class="k">Upcoming SoS</div><div class="v">${t.upcoming_sos.sos > 0 ? "+" : ""}${n(t.upcoming_sos.sos)}</div><div class="note">avg rating of teams left</div></div>
+      </div>
+      <div class="table-scroll" style="margin-top:8px"><table class="stat">
+        <thead><tr>${th("Next", { sortable: false })}${th("Opponent", { sortable: false })}${th("", { sortable: false })}${th("Rating", { sortable: false, title: "Opponent's current league average margin" })}</tr></thead>
+        <tbody>${t.upcoming_sos.next.map(g => `<tr><td>${esc(g.round || "")}</td><td>${esc(g.opponent || "")}</td><td class="muted">${g.home ? "vs" : "@"}</td>${g.rating == null ? '<td class="num">—</td>' : pmCell(g.rating)}</tr>`).join("")}</tbody>
+      </table></div>` : ""}
+    <p class="muted" style="font-size:12px;margin-top:8px">Each opponent's strength is its league average margin from the ladder; the adjusted margin adds that to SJB's own.${(t.sos && t.sos.grades && t.sos.grades.length > 1) ? " Split by grade — margins in different grades aren't on the same scale." : ""}${t.upcoming_sos ? " Upcoming uses each remaining opponent's current ladder rating." : ""}</p>
   </div>` : ""}
 
   <div class="card"><h2>Head-to-head</h2>

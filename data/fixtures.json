@@ -1,0 +1,80 @@
+{
+  "_comment": "SJB's upcoming fixtures per season, pulled from PlayHQ by fetch_ladder.py for the team page's forward strength of schedule. Auto-generated — do not hand-edit. A failed fetch keeps the last values.",
+  "season-2": {
+    "updated": "2026-11-15",
+    "upcoming": [
+      {
+        "round": "Round 8",
+        "date": "2026-11-15",
+        "opponent": "Licola Lobsters",
+        "home": true
+      },
+      {
+        "round": "Round 9",
+        "date": "2026-11-22",
+        "opponent": "Melbourne Uni 3M",
+        "home": false
+      },
+      {
+        "round": "Round 10",
+        "date": "2026-11-29",
+        "opponent": "Dunk, Dunk, Goose!",
+        "home": true
+      },
+      {
+        "round": "Round 11",
+        "date": "2026-12-06",
+        "opponent": "ISO Gang",
+        "home": true
+      },
+      {
+        "round": "Round 12",
+        "date": "2026-12-13",
+        "opponent": "Gizmo's Heroes",
+        "home": true
+      },
+      {
+        "round": "Round 13",
+        "date": "2027-01-10",
+        "opponent": "Coin Tossers",
+        "home": false
+      },
+      {
+        "round": "Round 14",
+        "date": "2027-01-17",
+        "opponent": "Ronins",
+        "home": true
+      },
+      {
+        "round": "Round 15",
+        "date": "2027-01-31",
+        "opponent": "KOS",
+        "home": false
+      },
+      {
+        "round": "Round 16",
+        "date": "2027-02-07",
+        "opponent": "The Fakers",
+        "home": true
+      },
+      {
+        "round": "Round 17",
+        "date": "2027-02-14",
+        "opponent": "The Beers",
+        "home": false
+      },
+      {
+        "round": "Round 18",
+        "date": "2027-02-21",
+        "opponent": "Warriors",
+        "home": true
+      },
+      {
+        "round": "Round 19",
+        "date": "2027-02-28",
+        "opponent": "Licola Lobsters",
+        "home": false
+      }
+    ]
+  }
+}
