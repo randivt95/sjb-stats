@@ -795,6 +795,8 @@ def load_ladder():
             "status": blk.get("status"),
             "ranked_by": blk.get("ranked_by"),
             "note": blk.get("note"),
+            "grade_label": blk.get("grade_label"),
+            "parent": blk.get("parent"),
             "teams": rows,
         }
     return out
@@ -1132,6 +1134,56 @@ def usage_rate(entries):
     return round(100 * (pfga + 0.44 * pfta + pto) * (tmp / 5) / denom, 1)
 
 
+def compute_advanced(entries):
+    """BBref-style per-player rate stats over a player's fully-tracked games —
+    USG%, TRB%, AST%, STL%, BLK%, TOV% — each minute-adjusted against the team's
+    (and, for rebound/steal/block rates, the opponent's) totals in those games.
+    A game's team minutes = the sum of the five-on-court SJB players' minutes, so
+    `glen` (TmMP/5, summed over the games) scales each rate by share of time played.
+    These need only the SJB box plus opponent TEAM totals — no league data."""
+    pmp = pfga = pfta = pto = preb = past = pstl = pblk = pfgm = 0.0
+    tfga = tfta = tto = treb = tfgm = tmp = 0.0
+    oreb = ofga = o3pa = oposs = 0.0
+    have_opp = False
+    for g, p in entries:
+        tl = g.get("team_line") or {}
+        ol = g.get("opp_line") or {}
+        if p.get("fga") is None or p.get("min") is None or tl.get("fga") is None:
+            continue
+        pmp += p["min"]; pfga += p["fga"]; pfta += (p.get("fta") or 0); pto += (p.get("to") or 0)
+        preb += (p.get("reb") or 0); past += (p.get("ast") or 0)
+        pstl += (p.get("stl") or 0); pblk += (p.get("blk") or 0); pfgm += (p.get("fgm") or 0)
+        tfga += tl["fga"]; tfta += (tl.get("fta") or 0); tto += (tl.get("to") or 0)
+        treb += (tl.get("reb") or 0); tfgm += (tl.get("fgm") or 0)
+        tmp += sum((q["min"] or 0) for q in g["box_us"] if q.get("min") is not None)
+        if ol.get("fga") is not None:
+            have_opp = True
+            oreb += (ol.get("reb") or 0); ofga += ol["fga"]; o3pa += (ol.get("tpa") or 0)
+            oposs += possessions(ol)
+    out = {"usg": None, "trb_pct": None, "ast_pct": None,
+           "stl_pct": None, "blk_pct": None, "tov_pct": None}
+    if not pmp:
+        return out
+    glen = tmp / 5.0                                   # summed game length (TmMP/5)
+    usg_den = pmp * (tfga + 0.44 * tfta + tto)
+    if usg_den:
+        out["usg"] = round(100 * (pfga + 0.44 * pfta + pto) * glen / usg_den, 1)
+    tov_den = pfga + 0.44 * pfta + pto
+    if tov_den:
+        out["tov_pct"] = round(100 * pto / tov_den, 1)
+    ast_den = (pmp / glen) * tfgm - pfgm if glen else 0
+    if ast_den > 0:
+        out["ast_pct"] = round(100 * past / ast_den, 1)
+    if have_opp:
+        if pmp * (treb + oreb):
+            out["trb_pct"] = round(100 * preb * glen / (pmp * (treb + oreb)), 1)
+        if pmp * oposs:
+            out["stl_pct"] = round(100 * pstl * glen / (pmp * oposs), 1)
+        if pmp * (ofga - o3pa) > 0:
+            out["blk_pct"] = round(100 * pblk * glen / (pmp * (ofga - o3pa)), 1)
+    return out
+
+
 def split_group(label, rows):
     """A splits row (BBref player splits): games, W-L-D and headline averages over
     a subset of a player's game log. Averages skip games that didn't track a stat."""
@@ -1228,7 +1280,7 @@ def build_players(games):
             block["jersey"] = s_entries[-1][1]["jersey"]
             block["team"] = TEAM_NAME
             block["sort_date"] = min(g["date"] for g, _ in s_entries)
-            block["usg"] = usage_rate(s_entries)
+            block.update(compute_advanced(s_entries))
             block["highs"] = compute_highs(s_entries)
             seasons.append(block)
 
@@ -1242,7 +1294,7 @@ def build_players(games):
             career_raw = combine_raw(career_raw, eb["_raw"])
         career_full = display_block(career_raw)
         career_full.update({"season_label": "Career", "jersey": jersey})
-        career_full["usg"] = usage_rate(entries)
+        career_full.update(compute_advanced(entries))
         teams = {b.get("team", TEAM_NAME) for b in seasons}
 
         log = []
@@ -1381,6 +1433,36 @@ def build_team(games):
                for k, v in lagg.items()]
     lineups.sort(key=lambda l: -l["min"])
 
+    # on/off impact: team margin per 40 min with each player ON the floor vs OFF,
+    # from the five-man lineups. "Off" is measured only across the games the player
+    # featured in, so a bench spell counts but games they missed don't.
+    impact = {}
+    for g in games:
+        ls = g.get("lineups") or []
+        if not ls:
+            continue
+        gf = sum(l["for"] for l in ls); ga = sum(l["against"] for l in ls); gm = sum(l["min"] for l in ls)
+        for nm in {nm for l in ls for nm in l["players"]}:
+            e = impact.setdefault(nm, {"on_for": 0.0, "on_against": 0.0, "on_min": 0.0,
+                                       "tf": 0.0, "ta": 0.0, "tm": 0.0})
+            e["tf"] += gf; e["ta"] += ga; e["tm"] += gm
+        for l in ls:
+            for nm in l["players"]:
+                e = impact[nm]
+                e["on_for"] += l["for"]; e["on_against"] += l["against"]; e["on_min"] += l["min"]
+    player_impact = []
+    for nm, e in impact.items():
+        off_min = e["tm"] - e["on_min"]
+        if e["on_min"] < 15 or off_min < 15:              # need a real sample of both
+            continue
+        on_net = (e["on_for"] - e["on_against"]) / e["on_min"] * 40
+        off_net = ((e["tf"] - e["on_for"]) - (e["ta"] - e["on_against"])) / off_min * 40
+        player_impact.append({
+            "name": nm, "slug": slugify(nm),
+            "on": round(on_net, 1), "off": round(off_net, 1), "diff": round(on_net - off_net, 1),
+            "on_min": round(e["on_min"]), "off_min": round(off_min)})
+    player_impact.sort(key=lambda x: -x["diff"])
+
     # head-to-head record vs each opponent (record spans all games incl. forfeits;
     # points averages use scored games only)
     h2h = {}
@@ -1466,6 +1548,7 @@ def build_team(games):
         "opp_four_factors": four_factors(otot, tot["dreb"]),
         "tov_margin": otot["to"] - tot["to"],
         "lineups": lineups[:10],
+        "player_impact": player_impact,
         "defense_rows": [
             {"game_id": g["id"], "opponent": g["opponent"], "date_disp": g["date_disp"],
              "date": g["date"], "partial": g.get("partial", False),
@@ -2071,6 +2154,165 @@ def compute_frivolities(games, players):
     return cards
 
 
+def compute_records(games, players, team_by_season, seasons):
+    """Franchise record book — all-time single-game team highs, single-game player
+    highs (each linking the player and the game), and season bests. All from data
+    already computed; just the extremes pulled together onto one page."""
+    scored = [g for g in games if g.get("level") != "forfeit"]
+    tracked = [g for g in games if g.get("level", "full") == "full"]
+    glab = lambda g: {"id": g["id"], "label": f"{g['date_disp']} vs {g['opponent']}"}
+
+    team_game = []
+    def tadd(label, g, val, sub=""):
+        if g is not None:
+            team_game.append({"label": label, "value": val, "game": glab(g), "sub": sub})
+    if scored:
+        tadd("Most points scored", max(scored, key=lambda x: x["us"]),
+             max(scored, key=lambda x: x["us"])["us"])
+        g = min(scored, key=lambda x: x["them"]); tadd("Fewest points allowed", g, g["them"])
+        g = max(scored, key=lambda x: x["margin"]); tadd("Biggest win", g, f"+{g['margin']}", f"{g['us']}–{g['them']}")
+        g = min(scored, key=lambda x: x["margin"])
+        if g["margin"] < 0: tadd("Heaviest defeat", g, g["margin"], f"{g['us']}–{g['them']}")
+        g = max(scored, key=lambda x: x["us"] + x["them"]); tadd("Highest-scoring game", g, g["us"] + g["them"], f"{g['us']}–{g['them']}")
+    runs = [g for g in games if g.get("longest_run")]
+    if runs:
+        g = max(runs, key=lambda x: x["longest_run"]); tadd("Longest scoring run", g, f"{g['longest_run']}–0")
+    leads = [g for g in games if g.get("biggest_lead") is not None]
+    if leads:
+        g = max(leads, key=lambda x: x["biggest_lead"]); tadd("Biggest lead held", g, f"+{g['biggest_lead']}")
+    threes = [g for g in tracked if (g.get("team_line") or {}).get("tpm") is not None]
+    if threes:
+        g = max(threes, key=lambda x: x["team_line"]["tpm"]); tadd("Most threes made", g, g["team_line"]["tpm"])
+
+    player_game = []
+    def best(statkey, label, as_float=False):
+        bv = bp = bl = None
+        for p in players:
+            for l in p["log"]:
+                v = l.get(statkey)
+                if v is None:
+                    continue
+                if bv is None or v > bv:
+                    bv, bp, bl = v, p, l
+        if bp is None or bv is None:
+            return
+        player_game.append({
+            "label": label, "value": round(bv, 1) if as_float else bv,
+            "player": {"name": bp["name"], "slug": bp["slug"]},
+            "game": {"id": bl["game_id"], "label": f"{bl['date_disp']} vs {bl['opponent']}"}})
+    for key, lab, fl in [("pts", "Most points", False), ("reb", "Most rebounds", False),
+                         ("ast", "Most assists", False), ("stl", "Most steals", False),
+                         ("blk", "Most blocks", False), ("tpm", "Most threes made", False),
+                         ("ftm", "Most free throws", False), ("gmsc", "Highest Game Score", True)]:
+        best(key, lab, fl)
+
+    season = []
+    labels = {s["key"]: s["label"] for s in seasons}
+    scope = [s["key"] for s in seasons]
+    def sadd(label, key, best_fn, fmt):
+        cand = [(sk, team_by_season[sk]) for sk in scope if team_by_season.get(sk)]
+        cand = [(sk, t) for sk, t in cand if best_fn(t) is not None]
+        if not cand:
+            return
+        sk, t = max(cand, key=lambda ct: best_fn(ct[1]))
+        season.append({"label": label, "value": fmt(t), "sub": labels.get(sk, sk)})
+    sadd("Best net rating", "net", lambda t: t["advanced"]["net_rtg"], lambda t: f"{'+' if t['advanced']['net_rtg'] > 0 else ''}{t['advanced']['net_rtg']}")
+    sadd("Highest scoring", "ppg", lambda t: t["ppg_for"], lambda t: t["ppg_for"])
+    sadd("Stingiest defence", "def", lambda t: -t["ppg_against"], lambda t: t["ppg_against"])
+    sadd("Best win %", "pct", lambda t: (t["record"]["w"] / max(t["record"]["w"] + t["record"]["l"], 1)),
+         lambda t: f"{t['record']['w']}-{t['record']['l']}{('-' + str(t['record']['d'])) if t['record']['d'] else ''}")
+    # longest win streak, all-time, from the game order
+    best_streak = {"n": 0}
+    for sk in scope:
+        run = 0
+        for g in [x for x in games if x["season"] == sk]:
+            run = run + 1 if g["result"] == "W" else 0
+            if run > best_streak["n"]:
+                best_streak = {"n": run, "sub": labels.get(sk, sk)}
+    if best_streak["n"] >= 2:
+        season.append({"label": "Longest win streak", "value": f"{best_streak['n']} wins", "sub": best_streak.get("sub", "")})
+
+    return {"team_game": team_game, "player_game": player_game, "season": season}
+
+
+def compute_milestones(players):
+    """Record watch — each core player's nearest upcoming career round-number
+    milestone (across points, rebounds, assists and games played), closest first."""
+    STEPS = [("pts", "points", 50), ("reb", "rebounds", 50),
+             ("ast", "assists", 25), ("games", "games", 25)]
+    out = []
+    for p in players:
+        if not p.get("core"):
+            continue
+        tot = p.get("totals") or {}
+        vals = {"pts": tot.get("pts"), "reb": tot.get("reb"),
+                "ast": tot.get("ast"), "games": p.get("games")}
+        best = None
+        for key, label, step in STEPS:
+            cur = vals.get(key)
+            if cur is None:
+                continue
+            nxt = (cur // step + 1) * step
+            cand = {"name": p["name"], "slug": p["slug"], "stat": label,
+                    "current": cur, "next": nxt, "to_go": nxt - cur}
+            if best is None or cand["to_go"] < best["to_go"]:
+                best = cand
+        if best:
+            out.append(best)
+    out.sort(key=lambda x: x["to_go"])
+    return out
+
+
+def strength_of_schedule(games, ladder, season_key):
+    """Opponent-adjusted team rating (SRS-lite) from the league ladder, split by
+    grade. Each opponent's strength = its league average margin ((for − against) /
+    games) off the ladder; SoS is the average of the opponents SJB faced in that
+    grade, and the adjusted margin is SJB's own average margin + SoS. A season can
+    span grades (e.g. promotion mid-season): the primary ladder block plus any child
+    blocks (`parent` == this season) are each rated separately, because margins in
+    different grades aren't on the same scale. Needs only results + the ladder, no
+    league box scores. A grade is shown only if ≥3 of its opponents are on the
+    ladder, so grades whose teams aren't listed are quietly dropped."""
+    ladder = ladder or {}
+    blocks = []
+    main = ladder.get(season_key)
+    if isinstance(main, dict) and main.get("teams"):
+        blocks.append(main)
+    for blk in ladder.values():
+        if isinstance(blk, dict) and blk.get("parent") == season_key and blk.get("teams"):
+            blocks.append(blk)
+    if not blocks:
+        return None
+    scored = [g for g in games if g.get("level") != "forfeit"]
+    grades = []
+    for blk in blocks:
+        ratings = {}
+        for t in blk.get("teams", []):
+            p = t.get("p") or 0
+            if p:
+                ratings[t["team"].strip().lower()] = (t.get("f", 0) - t.get("a", 0)) / p
+        opp_vals, margins = [], []
+        for g in scored:
+            r = ratings.get(g["opponent"].strip().lower())
+            if r is not None:
+                opp_vals.append(r)
+                margins.append(g["margin"])
+        if len(opp_vals) < 3:
+            continue
+        sos = sum(opp_vals) / len(opp_vals)
+        avg_margin = sum(margins) / len(margins)
+        grades.append({
+            "label": blk.get("grade_label", ""),
+            "sos": round(sos, 1),
+            "avg_margin": round(avg_margin, 1),
+            "adj_margin": round(avg_margin + sos, 1),
+            "games": len(opp_vals),
+        })
+    if not grades:
+        return None
+    return {"grades": grades}
+
+
 # --- main ------------------------------------------------------------------
 
 def build():
@@ -2247,6 +2489,7 @@ def build():
         s["w" if g["result"] == "W" else "l" if g["result"] == "L" else "d"] += 1
 
     # per-season (and all-time) team stats + leaderboards, for the season switcher
+    ladder = load_ladder()
     scope_keys = [s["key"] for s in seasons]
     team_by_season = {"all": team}
     leaders_by_season = {"all": leaders}
@@ -2254,6 +2497,7 @@ def build():
         gs = [g for g in games if g["season"] == sk]
         team_by_season[sk] = build_team(gs)
         leaders_by_season[sk] = build_leaders(season_leader_entries(players, sk))
+        team_by_season[sk]["sos"] = strength_of_schedule(gs, ladder, sk)
 
     awards, _honors = compute_awards(games, seasons)
 
@@ -2266,12 +2510,14 @@ def build():
         "current_season_key": scope_keys[-1] if scope_keys else "all",
         "team": team,
         "team_by_season": team_by_season,
+        "records": compute_records(games, players, team_by_season, seasons),
+        "milestones": compute_milestones(players),
         "schedule": schedule,
         "games": games,
         "players": players,
         "leaders": leaders,
         "leaders_by_season": leaders_by_season,
-        "ladder": load_ladder(),
+        "ladder": ladder,
         "validation": {
             "ok": all(c["ok"] for c in checks),
             "total": len(checks),

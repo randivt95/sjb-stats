@@ -435,6 +435,17 @@ function viewHome() {
     </div>
   </div>
 
+  ${(() => {
+    const mw = (DATA.milestones || []).slice(0, 6);
+    if (!mw.length) return "";
+    return `<div class="card"><h2>Milestone watch <span class="hint">nearest career round numbers</span></h2>
+      <ul class="friv-list">${mw.map(m => `<li class="friv-row">
+        <span class="friv-main">${playerLink(find(m.slug))} <span class="friv-sub">${m.current} ${esc(m.stat)}</span></span>
+        <span class="friv-val">${m.to_go} to ${m.next}</span>
+      </li>`).join("")}</ul>
+    </div>`;
+  })()}
+
   <div class="card">
     <h2>Results</h2>
     <div class="recent"><div class="chip-row">${chips}</div></div>
@@ -851,6 +862,7 @@ function advRow(b, { career = false, showTeam = false } = {}) {
     ${seasonCell(b, career, showTeam)}
     ${intCell(b.games)}${cell(b.mp_avg, 0)}
     ${cell(b.ts)}${cell(b.efg)}${cell(b.usg)}
+    ${cell(b.trb_pct)}${cell(b.ast_pct)}${cell(b.stl_pct)}${cell(b.blk_pct)}${cell(b.tov_pct)}
     ${cell(b.gmsc_avg)}${cell(b.fp_avg)}${pmCell(b.plus_minus_avg)}
   </tr>`;
 }
@@ -999,6 +1011,7 @@ function viewPlayer(slug) {
       <thead><tr>
         ${th("Season", { sortable: false })}${th("G", { sortable: false })}${th("MP", { sortable: false })}
         ${th("TS%", { sortable: false, title: "True shooting %" })}${th("eFG%", { sortable: false })}${th("USG%", { sortable: false, title: "Usage rate — share of team possessions used while on court" })}
+        ${th("TRB%", { sortable: false, title: "Rebound rate — share of available rebounds (team + opponent) grabbed while on court" })}${th("AST%", { sortable: false, title: "Assist rate — share of teammates' field goals assisted while on court" })}${th("STL%", { sortable: false, title: "Steal rate — share of opponent possessions ended with a steal while on court" })}${th("BLK%", { sortable: false, title: "Block rate — share of opponent two-point attempts blocked while on court" })}${th("TOV%", { sortable: false, title: "Turnover rate — turnovers per 100 possessions used" })}
         ${th("GmSc", { sortable: false })}${th("FP", { sortable: false })}${th("+/-", { sortable: false })}
       </tr></thead>
       <tbody>${seasonADV}${multi ? advRow(c, { career: true, showTeam }) : ""}</tbody>
@@ -1129,6 +1142,17 @@ function viewTeam() {
     <div class="tile"><div class="k">% pts from 3</div><div class="v">${n(adv.pct_pts_from_3)}<small>%</small></div></div>
   </div>
 
+  ${(t.sos && t.sos.grades && t.sos.grades.length) ? `<div class="card"><h2>Strength of schedule <span class="hint">opponent-adjusted, from the ladder</span></h2>
+    ${t.sos.grades.map(gr => `
+      ${gr.label ? `<div style="font-weight:700;font-size:13px;margin:12px 0 6px;color:var(--muted)">${esc(gr.label)} <span style="font-weight:400">· ${gr.games} rated games</span></div>` : ""}
+      <div class="tiles">
+        <div class="tile"><div class="k">Avg margin</div><div class="v">${gr.avg_margin > 0 ? "+" : ""}${n(gr.avg_margin)}</div><div class="note">vs rated opponents</div></div>
+        <div class="tile"><div class="k">Strength of schedule</div><div class="v">${gr.sos > 0 ? "+" : ""}${n(gr.sos)}</div><div class="note">avg opponent rating</div></div>
+        <div class="tile hi"><div class="k">Adjusted margin</div><div class="v">${gr.adj_margin > 0 ? "+" : ""}${n(gr.adj_margin)}</div><div class="note">margin + SoS (SRS-lite)</div></div>
+      </div>`).join("")}
+    <p class="muted" style="font-size:12px;margin-top:8px">Each opponent's strength is its league average margin from the ladder; the adjusted margin adds that to SJB's own.${t.sos.grades.length > 1 ? " Split by grade — margins in different grades aren't on the same scale." : ""}</p>
+  </div>` : ""}
+
   ${(() => {
     const sbh = t.scoring_by_half, r = t.results;
     const sched = scheduleScope();
@@ -1186,6 +1210,17 @@ function viewTeam() {
     <p class="muted" style="font-size:12px;margin-top:10px">Record includes forfeits; the scoring averages use played games only.</p>
   </div>
 
+  ${(t.player_impact && t.player_impact.length) ? `<div class="card"><h2>On/off impact <span class="hint">team margin per 40 min, on court vs off</span></h2>
+    <div class="table-scroll"><table class="stat">
+      <thead><tr>${th("Player", { sortable: false })}${th("On", { title: "Team margin per 40 min while this player is on the floor" })}${th("Off", { title: "Team margin per 40 min while this player sits — same games only" })}${th("On−Off", { title: "The player's swing: on-court minus off-court margin" })}${th("On min")}${th("Off min")}</tr></thead>
+      <tbody>${t.player_impact.map(r => `<tr>
+        <td>${playerLink(find(r.slug))}</td>
+        ${pmCell(r.on)}${pmCell(r.off)}${pmCell(r.diff)}${intCell(r.on_min)}${intCell(r.off_min)}
+      </tr>`).join("")}</tbody>
+    </table></div>
+    <p class="muted" style="font-size:12px;margin-top:6px">From the play-by-play five-man lineups; "off" is measured only across games the player featured in. Small samples — read with care.</p>
+  </div>` : ""}
+
   <div class="card"><h2>Five-man lineups</h2>
     <div class="table-scroll"><table class="stat">
       <thead><tr>${th("Lineup", { sortable: false })}${th("MIN")}${th("For")}${th("Agst")}${th("+/-")}</tr></thead>
@@ -1220,6 +1255,7 @@ function viewGlossary() {
       <dt>Plus/minus (+/-)</dt><dd>Team points scored minus allowed while a player was on the floor. Reconstructed from the play-by-play lineups and checked against the recorded box figure.</dd>
       <dt>True shooting (TS%)</dt><dd>Scoring efficiency counting twos, threes and free throws together: <code>PTS / (2·(FGA + 0.44·FTA))</code>. 55%+ is strong.</dd>
       <dt>Usage rate (USG%)</dt><dd>The share of the team's scoring possessions a player used (shots, trips to the line and turnovers) while on the floor, adjusted for minutes. ~20% is an average load; a go-to scorer runs higher.</dd>
+      <dt>Rate stats (TRB% / AST% / STL% / BLK% / TOV%)</dt><dd>Minute-adjusted shares rather than raw counts, so part-timers and starters compare fairly. <strong>TRB%</strong>: of all rebounds available while on court (both teams), the share this player grabbed. <strong>AST%</strong>: of teammates' made field goals while on court, the share this player set up. <strong>STL%</strong> / <strong>BLK%</strong>: of the opponent's possessions / two-point attempts, the share ended by this player's steal / block. <strong>TOV%</strong>: turnovers per 100 possessions used. All are computed from the SJB box and opponent team totals — no league data needed.</dd>
       <dt>Per 36 minutes</dt><dd>A player's counting stats scaled to 36 minutes of play, so part-time and full-time players can be compared on a level field. Totals ÷ minutes × 36.</dd>
       <dt>Shooting profile</dt><dd><strong>2P% / 3P% / FT%</strong> are efficiency on each shot type; <strong>%Pts</strong> columns show how a player's points are split across twos, threes and free throws; <strong>3PAr</strong> is the share of field-goal attempts taken from three.</dd>
     </dl>
@@ -1239,6 +1275,40 @@ function footer() {
     Shake Jelly Balls · built from box-score &amp; play-by-play exports · ${DATA.games.length} games<br>
     <a href="#/glossary">Glossary &amp; data notes</a> · generated ${esc((DATA.generated_at || "").slice(0, 10))}
   </div>`;
+}
+
+/* ---- records book ------------------------------------------------------- */
+function viewRecords() {
+  const R = DATA.records || {};
+  const gLink = g => g ? gameLink({ id: g.id, date_disp: g.label }, g.label) : "";
+  const teamRows = (R.team_game || []).map(r => `<tr>
+    <td>${esc(r.label)}</td><td class="num"><strong>${esc(String(r.value))}</strong></td>
+    <td>${gLink(r.game)}${r.sub ? ` <span class="muted">${esc(r.sub)}</span>` : ""}</td></tr>`).join("");
+  const playerRows = (R.player_game || []).map(r => `<tr>
+    <td>${esc(r.label)}</td><td class="num"><strong>${esc(String(r.value))}</strong></td>
+    <td>${playerLink(find(r.player.slug))}</td><td>${gLink(r.game)}</td></tr>`).join("");
+  const seasonRows = (R.season || []).map(r => `<tr>
+    <td>${esc(r.label)}</td><td class="num"><strong>${esc(String(r.value))}</strong></td>
+    <td class="muted">${esc(r.sub || "")}</td></tr>`).join("");
+  const empty = !teamRows && !playerRows && !seasonRows;
+  return `<div class="page-head"><h1>Records book</h1>
+    <div class="sub">All-time franchise highs — single games and whole seasons.</div></div>
+    ${empty ? `<div class="card"><p class="muted">No records yet.</p></div>` : `
+    <div class="grid cols-2">
+      <div class="card"><h2>Team single-game</h2>
+        <div class="table-scroll"><table class="stat"><thead><tr>${["Record", "Mark", "Game"].map(h => th(h, { sortable: false })).join("")}</tr></thead>
+        <tbody>${teamRows || `<tr><td class="muted" colspan="3">—</td></tr>`}</tbody></table></div>
+      </div>
+      <div class="card"><h2>Season bests</h2>
+        <div class="table-scroll"><table class="stat"><thead><tr>${["Record", "Mark", "Season"].map(h => th(h, { sortable: false })).join("")}</tr></thead>
+        <tbody>${seasonRows || `<tr><td class="muted" colspan="3">—</td></tr>`}</tbody></table></div>
+      </div>
+    </div>
+    <div class="card"><h2>Individual single-game</h2>
+      <div class="table-scroll"><table class="stat"><thead><tr>${["Record", "Mark", "Player", "Game"].map(h => th(h, { sortable: false })).join("")}</tr></thead>
+      <tbody>${playerRows || `<tr><td class="muted" colspan="4">—</td></tr>`}</tbody></table></div>
+    </div>`}
+    ${footer()}`;
 }
 
 /* ---- league ladder ------------------------------------------------------ */
@@ -1273,28 +1343,33 @@ function viewLadder() {
     <span class="lp-text">Shake Jelly Balls ${verb} <strong>${ordinal(sjb.rank)}</strong> of ${L.teams.length} — ${sjb.w}-${sjb.l}${sjb.d ? "-" + sjb.d : ""}, ${n(sjb.pts_avg, 2)} points average</span>
   </div>` : "";
 
-  const rows = L.teams.map(t => `<tr class="${t.is_sjb ? "ladder-sjb" : ""}">
-    <td class="num" data-v="${t.rank}">${t.rank}</td>
-    <td>${t.is_sjb ? `<strong>${esc(t.team)}</strong>` : esc(t.team)}</td>
-    ${intCell(t.p)}${cell(t.pts_avg, 2)}${intCell(t.pts)}${cell(t.pct, 2)}
-    ${intCell(t.w)}${intCell(t.l)}${intCell(t.d)}${intCell(t.bye)}
-    ${intCell(t.f)}${intCell(t.a)}${intCell(t.forf)}${intCell(t.disq)}${intCell(t.adj)}
-  </tr>`).join("");
+  const ladderTableCard = (block, heading) => {
+    const rows = block.teams.map(t => `<tr class="${t.is_sjb ? "ladder-sjb" : ""}">
+      <td class="num" data-v="${t.rank}">${t.rank}</td>
+      <td>${t.is_sjb ? `<strong>${esc(t.team)}</strong>` : esc(t.team)}</td>
+      ${intCell(t.p)}${cell(t.pts_avg, 2)}${intCell(t.pts)}${cell(t.pct, 2)}
+      ${intCell(t.w)}${intCell(t.l)}${intCell(t.d)}${intCell(t.bye)}
+      ${intCell(t.f)}${intCell(t.a)}${intCell(t.forf)}${intCell(t.disq)}${intCell(t.adj)}
+    </tr>`).join("");
+    return `<div class="card">${heading ? `<h2>${esc(heading)}</h2>` : ""}<div class="table-scroll"><table class="stat ladder-table">
+      <thead><tr>
+        ${th("#")}${th("Team")}${th("P", { title: "Games played" })}${th("PTS AVG", { title: "Points average — competition points ÷ games played (the ranking metric)" })}${th("PTS", { title: "Competition points" })}${th("%", { title: "Percentage — points for ÷ points against × 100" })}
+        ${th("W")}${th("L")}${th("D")}${th("BYE")}${th("F", { title: "Points for" })}${th("A", { title: "Points against" })}
+        ${th("FORF", { title: "Forfeits" })}${th("DISQ", { title: "Disqualifications" })}${th("ADJ", { title: "Adjustments" })}
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>
+    <p class="muted" style="font-size:12px;margin-top:10px">${block.ranked_by ? `<strong>Ranked by:</strong> ${esc(block.ranked_by)}. ` : ""}${block.note ? esc(block.note) : ""}</p>
+    </div>`;
+  };
+  const children = Object.values(ladders).filter(b => b && b.parent === key && b.teams && b.teams.length);
 
   return `
   ${header}
   ${callout}
-  <div class="card"><div class="table-scroll"><table class="stat ladder-table">
-    <thead><tr>
-      ${th("#")}${th("Team")}${th("P", { title: "Games played" })}${th("PTS AVG", { title: "Points average — competition points ÷ games played (the ranking metric)" })}${th("PTS", { title: "Competition points" })}${th("%", { title: "Percentage — points for ÷ points against × 100" })}
-      ${th("W")}${th("L")}${th("D")}${th("BYE")}${th("F", { title: "Points for" })}${th("A", { title: "Points against" })}
-      ${th("FORF", { title: "Forfeits" })}${th("DISQ", { title: "Disqualifications" })}${th("ADJ", { title: "Adjustments" })}
-    </tr></thead>
-    <tbody>${rows}</tbody>
-  </table></div>
-  <p class="muted" style="font-size:12px;margin-top:10px">${L.ranked_by ? `<strong>Ranked by:</strong> ${esc(L.ranked_by)}. ` : ""}${L.note ? esc(L.note) : ""}</p>
+  ${ladderTableCard(L, null)}
+  ${children.map(c => ladderTableCard(c, c.grade_label || "Earlier grade")).join("")}
   <p class="muted" style="font-size:12px;margin-top:6px"><strong>PTS AVG</strong> = points ÷ games (the ranking metric); <strong>%</strong> = points for ÷ against × 100; <strong>F/A</strong> = points for / against; <strong>FORF / DISQ / ADJ</strong> = forfeits, disqualifications, adjustments. Click a column to sort.</p>
-  </div>
   ${footer()}`;
 }
 
@@ -1466,6 +1541,7 @@ function route() {
     case "player": html = viewPlayer(decodeURIComponent(arg || "")); break;
     case "leaders": html = viewLeaders(); break;
     case "team": html = viewTeam(); break;
+    case "records": html = viewRecords(); break;
     case "ladder": html = viewLadder(); break;
     case "awards": html = viewAwards(); break;
     case "frivolities": html = viewFrivolities(); break;

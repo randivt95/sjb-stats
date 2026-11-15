@@ -24,6 +24,7 @@
   "season-2": {
     "updated": "2026-11-11",
     "status": "in_progress",
+    "grade_label": "C Grade 2 · current",
     "ranked_by": "Points average, then percentage, then points for",
     "note": "Live from the official PlayHQ ladder (MCBA Sunday Men C Grade 2, Summer 2026/27), refreshed on each build.",
     "source": {"playhq_grade_id": "f7e657dc", "tenant": "basketball-victoria"},
@@ -40,6 +41,31 @@
       {"team": "Dunk, Dunk, Goose!", "p": 7, "pts_avg": 1.86, "pts": 13, "pct": 85.71, "w": 3, "l": 2, "d": 1, "bye": 0, "f": 210, "a": 245, "forf": 1, "disq": 0, "adj": 0},
       {"team": "Warriors", "p": 7, "pts_avg": 1.71, "pts": 12, "pct": 100.94, "w": 2, "l": 4, "d": 1, "bye": 0, "f": 323, "a": 320, "forf": 0, "disq": 0, "adj": 0},
       {"team": "The Fakers", "p": 7, "pts_avg": 1.43, "pts": 10, "pct": 86.45, "w": 2, "l": 4, "d": 0, "bye": 0, "f": 236, "a": 273, "forf": 1, "disq": 0, "adj": 0}
+    ]
+  },
+  "season-2-d1": {
+    "parent": "season-2",
+    "grade_label": "Division 1 · Rounds 1–4 (promoted to C Grade 2)",
+    "updated": "2026-10-18",
+    "status": "final",
+    "ranked_by": "Points average, then percentage, then points for",
+    "note": "Shake Jelly Balls opened Season 2 in Division 1, went 4–0 over the first four rounds and were promoted to C Grade 2 (the live ladder above). This is D1 as it stood after Round 4, reconstructed from the official fixtures; forfeits are kept out of points for/against. Static — not refreshed.",
+    "teams": [
+      {"team": "Shake Jelly Balls", "p": 4, "pts_avg": 3.0, "pts": 12, "pct": 134.25, "w": 4, "l": 0, "d": 0, "bye": 0, "f": 196, "a": 146, "forf": 0, "disq": 0, "adj": 0},
+      {"team": "RMIT 7", "p": 4, "pts_avg": 2.5, "pts": 10, "pct": 123.58, "w": 3, "l": 1, "d": 0, "bye": 0, "f": 131, "a": 106, "forf": 0, "disq": 0, "adj": 0},
+      {"team": "Wolverines", "p": 4, "pts_avg": 2.5, "pts": 10, "pct": 109.3, "w": 3, "l": 1, "d": 0, "bye": 0, "f": 141, "a": 129, "forf": 0, "disq": 0, "adj": 0},
+      {"team": "RMIT Eta", "p": 4, "pts_avg": 2.0, "pts": 8, "pct": 111.18, "w": 2, "l": 2, "d": 0, "bye": 0, "f": 179, "a": 161, "forf": 0, "disq": 0, "adj": 0},
+      {"team": "Mic Vetro", "p": 4, "pts_avg": 2.0, "pts": 8, "pct": 109.09, "w": 2, "l": 2, "d": 0, "bye": 0, "f": 144, "a": 132, "forf": 0, "disq": 0, "adj": 0},
+      {"team": "Approachers", "p": 4, "pts_avg": 2.0, "pts": 8, "pct": 97.81, "w": 2, "l": 2, "d": 0, "bye": 0, "f": 134, "a": 137, "forf": 0, "disq": 0, "adj": 0},
+      {"team": "Pegasus", "p": 4, "pts_avg": 2.0, "pts": 8, "pct": 91.28, "w": 2, "l": 2, "d": 0, "bye": 0, "f": 136, "a": 149, "forf": 0, "disq": 0, "adj": 0},
+      {"team": "Sac Kings", "p": 4, "pts_avg": 2.0, "pts": 8, "pct": 89.38, "w": 2, "l": 2, "d": 0, "bye": 0, "f": 143, "a": 160, "forf": 0, "disq": 0, "adj": 0},
+      {"team": "Maccabi Legends", "p": 4, "pts_avg": 2.0, "pts": 8, "pct": 85.45, "w": 2, "l": 2, "d": 0, "bye": 0, "f": 94, "a": 110, "forf": 0, "disq": 0, "adj": 0},
+      {"team": "MoneyBallers", "p": 4, "pts_avg": 1.75, "pts": 7, "pct": 118.69, "w": 2, "l": 2, "d": 0, "bye": 0, "f": 127, "a": 107, "forf": 1, "disq": 0, "adj": 0},
+      {"team": "the creeps", "p": 4, "pts_avg": 1.75, "pts": 7, "pct": 102.91, "w": 2, "l": 2, "d": 0, "bye": 0, "f": 106, "a": 103, "forf": 1, "disq": 0, "adj": 0},
+      {"team": "Big Fellas", "p": 4, "pts_avg": 1.5, "pts": 6, "pct": 99.29, "w": 1, "l": 3, "d": 0, "bye": 0, "f": 139, "a": 140, "forf": 0, "disq": 0, "adj": 0},
+      {"team": "Old Xaverians", "p": 4, "pts_avg": 1.5, "pts": 6, "pct": 84.31, "w": 1, "l": 3, "d": 0, "bye": 0, "f": 129, "a": 153, "forf": 0, "disq": 0, "adj": 0},
+      {"team": "Alchemy", "p": 1, "pts_avg": 1.0, "pts": 1, "pct": 72.09, "w": 0, "l": 1, "d": 0, "bye": 0, "f": 31, "a": 43, "forf": 0, "disq": 0, "adj": 0},
+      {"team": "Helix", "p": 3, "pts_avg": 1.0, "pts": 3, "pct": 63.51, "w": 0, "l": 3, "d": 0, "bye": 1, "f": 94, "a": 148, "forf": 0, "disq": 0, "adj": 0}
     ]
   }
 }
