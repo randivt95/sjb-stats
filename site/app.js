@@ -1468,8 +1468,8 @@ function viewAwards() {
       { h: "GmSc", fmt: r => mipArrow(r.prev_gmsc, r.gmsc_avg), title: "Game Score per game: last season → this season" },
       { h: "PPG", fmt: r => mipArrow(r.prev_ppg, r.pts), title: "Points per game: last season → this season" }]);
 
-  const dpoy = awCard("Defensive Player", "steals + blocks per game", aw.dpoy, live,
-    w => w.def, [{ h: "STL+BLK", key: "def" }, SHARE_COL, { h: "STL", key: "stl" }, { h: "BLK", key: "blk" }, { h: "GmSc", key: "gmsc_avg" }]);
+  const dpoy = awCard("Defensive Player", "steals + 2.5 × blocks per game", aw.dpoy, live,
+    w => w.def, [{ h: "DEF", key: "def", title: "Defensive score per game: steals + 2.5 × blocks. Blocks are weighted up because the league averages ~4.7 steals per block, so at 1:1 they'd be drowned out" }, SHARE_COL, { h: "STL", key: "stl" }, { h: "BLK", key: "blk" }, { h: "GmSc", key: "gmsc_avg" }]);
 
   const clutch = awCard("Most Clutch", "points in the last 5 min, margin ≤ 5", aw.clutch, live,
     w => w.clutch + " pts", [{ h: "Clutch", key: "clutch", title: "Points scored in the last 5:00 of the final half with the score within 5" }, SHARE_COL, { h: "PTS", key: "pts" }, { h: "GmSc", key: "gmsc_avg" }]);
@@ -1505,7 +1505,7 @@ function viewAwards() {
   const careerCards = `<div class="grid cols-3">
     <div class="card"><h2>Career MVP rating</h2>${miniList(cl.mvp, r => r.mvp)}<p class="muted" style="font-size:11px;margin-top:8px">Game Score per team game, all seasons.</p></div>
     <div class="card"><h2>Career clutch points</h2>${miniList(cl.clutch, r => r.clutch)}</div>
-    <div class="card"><h2>Career defence</h2>${miniList(cl.defense, r => r.stlblk)}<p class="muted" style="font-size:11px;margin-top:8px">Total steals + blocks.</p></div>
+    <div class="card"><h2>Career defence</h2>${miniList(cl.defense, r => r.stlblk)}<p class="muted" style="font-size:11px;margin-top:8px">Weighted steals + blocks (steals + 2.5 × blocks).</p></div>
   </div>`;
 
   const wins = AT.winners || [];

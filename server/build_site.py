@@ -1582,6 +1582,11 @@ def build_team(games):
 AW_MIN_GAMES = 3            # a candidate must have at least this many tracked games
 AW_MIN_SHARE = 1 / 3.0     # ...and have played at least this share of the team's games
 AW_REL_MIN_GAMES = 5       # Mr. Reliable needs more games — a swing over 3 games is noise
+DEF_BLK_WEIGHT = 2.5       # DPOY: a block counts 2.5x a steal. The league averages ~4.7
+                           # steals per block, so at 1:1 blocks are drowned out; 2.5x is
+                           # roughly half-strength scarcity (√4.7 ≈ 2.2) plus the leverage
+                           # of a block erasing a shot attempt. Keeps steal leaders on top
+                           # while putting the roster's shot-blocker into real contention.
 CLUTCH_SECS = 300          # "clutch" = last 5:00 of the final half...
 CLUTCH_MARGIN = 5          # ...with the score within 5 points at the basket
 
@@ -1673,7 +1678,7 @@ def _aw_rows(blk):
             "blk": round(d["blk"] / g, 1) if g else 0.0,
             "pm": round(d["pm"] / g, 1) if g else 0.0,
             "ts": _ts_pct(d["pts"], d["fga"], d["fta"]),
-            "def": round((d["stl"] + d["blk"]) / g, 1) if g else 0.0,
+            "def": round((d["stl"] + DEF_BLK_WEIGHT * d["blk"]) / g, 1) if g else 0.0,
             "per36": round(d["gmsc"] / d["min"] * 36, 1) if d["min"] > 0 else 0.0,
             "mvp": round(d["gmsc"] / tg, 2),              # value per team game
             "avail": round(g / tg, 2) if tg else 0.0,
@@ -1812,8 +1817,8 @@ def compute_awards(games, seasons_meta):
     tg = total_tg or 1
     car = [{"name": c["name"], "slug": c["slug"], "g": c["g"],
             "mvp": round(c["gmsc"] / tg, 2), "gmsc_avg": round(c["gmsc"] / c["g"], 1) if c["g"] else 0,
-            "clutch": c["clutch"], "stlblk": c["stl"] + c["blk"],
-            "def": round((c["stl"] + c["blk"]) / c["g"], 1) if c["g"] else 0}
+            "clutch": c["clutch"], "stlblk": round(c["stl"] + DEF_BLK_WEIGHT * c["blk"], 1),
+            "def": round((c["stl"] + DEF_BLK_WEIGHT * c["blk"]) / c["g"], 1) if c["g"] else 0}
            for c in career.values()]
     career_leaders = {
         "mvp": sorted(car, key=lambda r: -r["mvp"])[:5],
