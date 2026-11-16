@@ -438,10 +438,10 @@ def build_highlights(feed, opponent):
                    "kind": "lead-max", "text": f"SJB's biggest lead (+{best['us'] - best['them']})",
                    "us": best["us"], "them": best["them"]})
 
-    # the final made basket of the game
+    # the final made basket of the game (the result itself is shown separately)
     fin = scores[-1]
     hl.append({"half": fin["half"], "clock": fin["clock"], "t": fin["t"], "team": fin["team"],
-               "kind": "final", "text": "Final score",
+               "kind": "final", "text": "Last basket",
                "us": fin["us"], "them": fin["them"]})
 
     # chronological, de-duplicated by (half, clock, text); cap the list

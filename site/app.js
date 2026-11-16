@@ -634,10 +634,22 @@ function kmItems(highlights, opponent) {
     </div>
   </li>`).join("");
 }
+function kmResult(g) {
+  const won = g.result === "W", lost = g.result === "L";
+  const word = won ? "Won" : lost ? "Lost" : "Drew";
+  const col = won ? "var(--win)" : lost ? "var(--loss)" : "var(--draw)";
+  const by = g.result === "D" ? "" : ` by ${Math.abs(g.us - g.them)}`;
+  return `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:10px;padding-top:12px;border-top:2px solid var(--border-md)">
+    <span style="font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--faint)">Final score</span>
+    <span style="font-size:17px;font-weight:800;font-variant-numeric:tabular-nums">${kmScore({ team: won ? "us" : lost ? "them" : null, us: g.us, them: g.them }, g.opponent)}</span>
+    <span style="font-weight:800;color:${col}">${word}${by}</span>
+  </div>`;
+}
 function keyMomentsCard(g) {
   if (!g.highlights || !g.highlights.length) return "";
   return `<div class="card"><h2>Key moments</h2>
-    <ul class="key-moments">${kmItems(g.highlights, g.opponent)}</ul></div>`;
+    <ul class="key-moments">${kmItems(g.highlights, g.opponent)}</ul>
+    ${kmResult(g)}</div>`;
 }
 
 function pbpRow(e) {
