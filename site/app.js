@@ -1244,7 +1244,7 @@ function viewTeam() {
       </tr>`;
       }).join("")}</tbody>
     </table></div>
-    <p class="muted" style="font-size:12px;margin-top:6px">From the play-by-play five-man lineups; "off" is measured only across games the player featured in. <span class="lo-flag">†</span> swing is built on under 100 off-court minutes — read the direction, not the exact figure.</p>
+    <p class="muted" style="font-size:12px;margin-top:6px">From the play-by-play five-man lineups; "off" is measured only across games the player featured in. <span class="lo-flag">†</span> swing is built on under 100 off-court minutes.</p>
   </div>` : ""}
 
   <div class="card"><h2>Five-man lineups</h2>
