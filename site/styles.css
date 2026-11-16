@@ -258,6 +258,11 @@ table.stat .muted { color: var(--faint); }
 .hi-mult { font-family: var(--sans); font-size: 10px; font-weight: 700; color: var(--accent);
   background: #eef3f8; border: 1px solid #cdddea; border-radius: 3px; padding: 0 4px; }
 
+/* on/off small-sample flag */
+.lo-flag { color: var(--faint); font-weight: 700; margin-left: 2px; }
+tr.low-sample .lo-diff { opacity: .62; }
+tr.low-sample td { background: rgba(0, 0, 0, .018); }
+
 /* league ladder */
 .ladder-pos { display: flex; align-items: center; gap: 12px; background: #eef3f8; border: 1px solid #b9ccdd;
   border-radius: 3px; padding: 10px 14px; margin-bottom: 16px; }

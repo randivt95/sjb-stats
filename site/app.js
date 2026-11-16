@@ -1234,12 +1234,17 @@ function viewTeam() {
   ${(t.player_impact && t.player_impact.length) ? `<div class="card"><h2>On/off impact <span class="hint">team margin per 40 min, on court vs off</span></h2>
     <div class="table-scroll"><table class="stat">
       <thead><tr>${th("Player", { sortable: false })}${th("On", { title: "Team margin per 40 min while this player is on the floor" })}${th("Off", { title: "Team margin per 40 min while this player sits — same games only" })}${th("On−Off", { title: "The player's swing: on-court minus off-court margin" })}${th("On min")}${th("Off min")}</tr></thead>
-      <tbody>${t.player_impact.map(r => `<tr>
+      <tbody>${t.player_impact.map(r => {
+        const lo = r.off_min < 100;
+        return `<tr${lo ? ' class="low-sample"' : ""}>
         <td>${playerLink(find(r.slug))}</td>
-        ${pmCell(r.on)}${pmCell(r.off)}${pmCell(r.diff)}${intCell(r.on_min)}${intCell(r.off_min)}
-      </tr>`).join("")}</tbody>
+        ${pmCell(r.on)}${pmCell(r.off)}${lo
+          ? `<td class="num ${r.diff > 0 ? "pos" : r.diff < 0 ? "neg" : ""} lo-diff" data-v="${r.diff}" title="Built on only ${r.off_min} off-court minutes — low confidence">${r.diff > 0 ? "+" + r.diff : r.diff}<span class="lo-flag">†</span></td>`
+          : pmCell(r.diff)}${intCell(r.on_min)}${intCell(r.off_min)}
+      </tr>`;
+      }).join("")}</tbody>
     </table></div>
-    <p class="muted" style="font-size:12px;margin-top:6px">From the play-by-play five-man lineups; "off" is measured only across games the player featured in. Small samples — read with care.</p>
+    <p class="muted" style="font-size:12px;margin-top:6px">From the play-by-play five-man lineups; "off" is measured only across games the player featured in. <span class="lo-flag">†</span> swing is built on under 100 off-court minutes — read the direction, not the exact figure.</p>
   </div>` : ""}
 
   <div class="card"><h2>Five-man lineups</h2>
