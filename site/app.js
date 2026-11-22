@@ -200,6 +200,16 @@ function lineChart(opts) {
   }
   const axis = `<line x1="${padL}" y1="${baseY.toFixed(1)}" x2="${W - padR}" y2="${baseY.toFixed(1)}" stroke="var(--border-md)" stroke-width="1"/>`;
 
+  // season (or other) boundary markers: a dotted vertical rule drawn midway
+  // between the two games it separates, with an optional small label up top
+  let divs = "";
+  (opts.dividers || []).forEach(d => {
+    if (d.i <= 0 || d.i >= nPts) return;
+    const x = ((X(d.i - 1) + X(d.i)) / 2).toFixed(1);
+    divs += `<line x1="${x}" y1="${(padT - 2).toFixed(1)}" x2="${x}" y2="${baseY.toFixed(1)}" stroke="var(--text-mute)" stroke-width="1" stroke-dasharray="3 3" opacity=".75"/>`;
+    if (d.label) divs += `<text x="${(parseFloat(x) + 3).toFixed(1)}" y="${(padT + 5).toFixed(1)}" font-size="8.5" text-anchor="start" fill="var(--text-mute)">${esc(d.label)}</text>`;
+  });
+
   let body = "", dots = "", hits = "";
   opts.series.forEach(s => {
     const pts = s.values.map((v, i) => v == null ? null : `${X(i).toFixed(1)},${Y(v).toFixed(1)}`).filter(Boolean).join(" ");
@@ -210,7 +220,7 @@ function lineChart(opts) {
       hits += `<circle class="chart-dot" style="--dc:${s.color}" cx="${X(i).toFixed(1)}" cy="${Y(v).toFixed(1)}" r="7" data-tip="${esc(opts.tip(i))}"/>`;
     });
   });
-  return `<svg class="flow-chart" viewBox="0 0 ${W} ${H}" role="img">${grid}${axis}${ylab}${body}${dots}${hits}</svg>`;
+  return `<svg class="flow-chart" viewBox="0 0 ${W} ${H}" role="img">${grid}${axis}${divs}${ylab}${body}${dots}${hits}</svg>`;
 }
 
 /* a single floating tooltip, reused across all charts */
@@ -1061,6 +1071,8 @@ function viewPlayer(slug) {
         labels: p.log.map(l => l.opponent),
         series: [{ color: "var(--accent)", values: p.log.map(l => l.pts) }],
         tip: i => `${p.log[i].date_disp} vs ${p.log[i].opponent}: ${p.log[i].pts} pts`,
+        dividers: p.log.map((l, i) => (i > 0 && l.season !== p.log[i - 1].season)
+          ? { i, label: l.season ? "S" + l.season.split("-").pop() : "" } : null).filter(Boolean),
         w: 380, h: 96, yMin: 0,
       })}
       <dl class="kv" style="margin-top:8px">
