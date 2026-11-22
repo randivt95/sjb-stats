@@ -37,6 +37,8 @@ function splitCell(m, a) {
   const pctv = a ? (100 * m / a) : -Infinity;
   return `<td class="num" data-v="${pctv}">${m}-${a}</td>`;
 }
+/* win–draw–loss record, always rendered W-D-L (draws shown even at 0) */
+function recStr(o) { return `${o.w}-${o.d}-${o.l}`; }
 function resultPill(r) {
   const cls = r === "W" ? "w" : r === "L" ? "l" : "d";
   return `<span class="pill ${cls}">${r}</span>`;
@@ -294,7 +296,7 @@ function homeRecap(g) {
 
 function viewHome() {
   const t = teamScope();
-  const rec = `${t.record.w}-${t.record.l}${t.record.d ? "-" + t.record.d : ""}`;
+  const rec = recStr(t.record);
   const games = scheduleScope();
   const L = leadersScope();
   const last = games.length ? byId(DATA.games, games[games.length - 1].id) : DATA.games[DATA.games.length - 1];
@@ -345,7 +347,7 @@ function viewHome() {
   if (r.avg_margin != null) notes.push(["Avg margin", `${r.avg_margin > 0 ? "+" : ""}${n(r.avg_margin)}`]);
   if (r.best_win) notes.push(["Best win", `<a href="#/game/${r.best_win.game_id}">+${r.best_win.margin} vs ${esc(r.best_win.opponent)}</a>`]);
   if (r.worst_loss) notes.push(["Worst loss", `<a href="#/game/${r.worst_loss.game_id}">${r.worst_loss.margin} vs ${esc(r.worst_loss.opponent)}</a>`]);
-  if (r.close) notes.push(["Close games (≤5)", `${r.close.g} · ${r.close.w}-${r.close.l}${r.close.d ? "-" + r.close.d : ""}`]);
+  if (r.close) notes.push(["Close games (≤5)", `${r.close.g} · ${recStr(r.close)}`]);
   if (r.blowout_wins != null) notes.push(["Blowout wins (15+)", r.blowout_wins]);
   if (standing) notes.push(["Ladder position", `<a href="#/ladder">${ordinal(standing.rank)} of ${ladderData.teams.length}</a>`]);
   const notableRows = notes.map(([k, v]) =>
@@ -456,7 +458,7 @@ function viewHome() {
 
 function viewSchedule() {
   const multiSeason = (DATA.seasons || []).length > 1;
-  const recOf = key => { const s = (DATA.seasons || []).find(x => x.key === key); return s ? `${s.w}-${s.l}${s.d ? "-" + s.d : ""}` : ""; };
+  const recOf = key => { const s = (DATA.seasons || []).find(x => x.key === key); return s ? recStr(s) : ""; };
   const gameRow = g => `<tr>
     <td class="num" data-v="${g.round ?? 999}">${g.stage ? `<span class="tag stage" title="${esc(g.stage.label)}">${esc(g.stage.short)}</span>` : g.round}</td>
     <td class="num" data-v="${g.date.replace(/-/g, "")}">${gameLink(g, g.date_disp)}</td>
@@ -464,7 +466,7 @@ function viewSchedule() {
     <td data-v="${g.result === "W" ? 2 : g.result === "D" ? 1 : 0}">${resultPill(g.result)}</td>
     <td class="num" data-v="${g.us}">${g.forfeit && !g.nominal_score ? "—" : `${g.us}–${g.them}`}</td>
     ${g.forfeit ? '<td class="num">—</td>' : pmCell(g.margin)}
-    <td class="num" data-v="${(g.rec_w ?? 0) * 100 - (g.rec_l ?? 0)}">${g.rec_w ?? 0}-${g.rec_l ?? 0}${g.rec_d ? "-" + g.rec_d : ""}</td>
+    <td class="num" data-v="${(g.rec_w ?? 0) * 100 - (g.rec_l ?? 0)}">${g.rec_w ?? 0}-${g.rec_d ?? 0}-${g.rec_l ?? 0}</td>
     <td data-v="${g.streak && g.streak[0] === "W" ? 1 : g.streak && g.streak[0] === "L" ? -1 : 0}">${streakTag(g.streak)}</td>
     <td>${g.forfeit ? '<span class="tag warn">forfeit</span>' : g.points_only ? '<span class="tag warn">points only</span>' : g.box_only ? '<span class="tag warn">box only</span>' : g.partial ? '<span class="tag warn">points + flow</span>' : '<span class="tag">tracked</span>'}</td>
   </tr>`;
@@ -916,12 +918,12 @@ function splitTable(title, rows, { record = true, games = true } = {}) {
   if (!rows || !rows.length) return "";
   const body = rows.map(s => `<tr>
     <td>${esc(s.label)}</td>
-    ${record ? `<td class="num">${s.w}-${s.l}${s.d ? "-" + s.d : ""}</td>` : ""}
+    ${record ? `<td class="num">${recStr(s)}</td>` : ""}
     ${games ? intCell(s.g) : ""}${cell(s.pts)}${cell(s.reb)}${cell(s.ast)}${cell(s.gmsc)}
   </tr>`).join("");
   return `<div class="split-block"><h3>${esc(title)}</h3>
     <div class="table-scroll"><table class="stat">
-      <thead><tr>${th("", { sortable: false })}${record ? th("W-L", { sortable: false }) : ""}${games ? th("G", { sortable: false }) : ""}${th("PTS", { sortable: false })}${th("TRB", { sortable: false })}${th("AST", { sortable: false })}${th("GmSc", { sortable: false })}</tr></thead>
+      <thead><tr>${th("", { sortable: false })}${record ? th("W-D-L", { sortable: false }) : ""}${games ? th("G", { sortable: false }) : ""}${th("PTS", { sortable: false })}${th("TRB", { sortable: false })}${th("AST", { sortable: false })}${th("GmSc", { sortable: false })}</tr></thead>
       <tbody>${body}</tbody></table></div></div>`;
 }
 function splitsCard(sp) {
@@ -1108,7 +1110,7 @@ function viewLeaders() {
 
 function viewTeam() {
   const t = teamScope(), adv = t.advanced, ff = t.four_factors, off = t.opp_four_factors;
-  const rec = `${t.record.w}-${t.record.l}${t.record.d ? "-" + t.record.d : ""}`;
+  const rec = recStr(t.record);
   const shoot = [
     ["Field goals", t.totals, t.opp_totals, "fgm", "fga", t.fg_pct, t.opp_fg_pct],
     ["Three-point", t.totals, t.opp_totals, "tpm", "tpa", t.tp_pct, t.opp_tp_pct],
@@ -1132,7 +1134,7 @@ function viewTeam() {
   const h2hRows = (t.head_to_head || []).map(h => `<tr>
     <td><a href="#/game/${h.last_id}">${esc(h.opponent)}</a></td>
     ${intCell(h.g)}
-    <td class="num" data-v="${h.w * 100 - h.l}">${h.w}-${h.l}${h.d ? "-" + h.d : ""}</td>
+    <td class="num" data-v="${h.w * 100 - h.l}">${recStr(h)}</td>
     ${cell(h.ppg_for)}${cell(h.ppg_against)}${pmCell(h.margin)}
   </tr>`).join("");
 
@@ -1178,7 +1180,7 @@ function viewTeam() {
       <div class="card"><h2>Margins &amp; results</h2>
         <dl class="kv">
           <dt>Average margin</dt><dd>${r.avg_margin == null ? "—" : (r.avg_margin > 0 ? "+" : "") + n(r.avg_margin)}</dd>
-          <dt>Close games (≤5 pts)</dt><dd>${r.close.w}-${r.close.l}${r.close.d ? "-" + r.close.d : ""} <span class="muted">(${r.close.g})</span></dd>
+          <dt>Close games (≤5 pts)</dt><dd>${recStr(r.close)} <span class="muted">(${r.close.g})</span></dd>
           <dt>Wins by 15+</dt><dd>${r.blowout_wins}</dd>
           <dt>Biggest win</dt><dd>${refLink(r.best_win)}</dd>
           <dt>Heaviest loss</dt><dd>${refLink(r.worst_loss)}</dd>
@@ -1378,7 +1380,7 @@ function viewLadder() {
   const verb = L.status === "final" ? "finished" : "sit";
   const callout = sjb ? `<div class="ladder-pos">
     <span class="lp-rank">${ordinal(sjb.rank)}</span>
-    <span class="lp-text">Shake Jelly Balls ${verb} <strong>${ordinal(sjb.rank)}</strong> of ${L.teams.length} — ${sjb.w}-${sjb.l}${sjb.d ? "-" + sjb.d : ""}, ${n(sjb.pts_avg, 2)} points average</span>
+    <span class="lp-text">Shake Jelly Balls ${verb} <strong>${ordinal(sjb.rank)}</strong> of ${L.teams.length} — ${recStr(sjb)}, ${n(sjb.pts_avg, 2)} points average</span>
   </div>` : "";
 
   const ladderTableCard = (block, heading) => {
@@ -1386,13 +1388,13 @@ function viewLadder() {
       <td class="num" data-v="${t.rank}">${t.rank}</td>
       <td>${t.is_sjb ? `<strong>${esc(t.team)}</strong>` : esc(t.team)}</td>
       ${intCell(t.p)}${cell(t.pts_avg, 2)}${intCell(t.pts)}${cell(t.pct, 2)}
-      ${intCell(t.w)}${intCell(t.l)}${intCell(t.d)}${intCell(t.bye)}
+      ${intCell(t.w)}${intCell(t.d)}${intCell(t.l)}${intCell(t.bye)}
       ${intCell(t.f)}${intCell(t.a)}${intCell(t.forf)}${intCell(t.disq)}${intCell(t.adj)}
     </tr>`).join("");
     return `<div class="card">${heading ? `<h2>${esc(heading)}</h2>` : ""}<div class="table-scroll"><table class="stat ladder-table">
       <thead><tr>
         ${th("#")}${th("Team")}${th("P", { title: "Games played" })}${th("PTS AVG", { title: "Points average — competition points ÷ games played (the ranking metric)" })}${th("PTS", { title: "Competition points" })}${th("%", { title: "Percentage — points for ÷ points against × 100" })}
-        ${th("W")}${th("L")}${th("D")}${th("BYE")}${th("F", { title: "Points for" })}${th("A", { title: "Points against" })}
+        ${th("W")}${th("D")}${th("L")}${th("BYE")}${th("F", { title: "Points for" })}${th("A", { title: "Points against" })}
         ${th("FORF", { title: "Forfeits" })}${th("DISQ", { title: "Disqualifications" })}${th("ADJ", { title: "Adjustments" })}
       </tr></thead>
       <tbody>${rows}</tbody>

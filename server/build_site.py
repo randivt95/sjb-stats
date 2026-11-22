@@ -1198,7 +1198,7 @@ def compute_advanced(entries):
 
 
 def split_group(label, rows):
-    """A splits row (BBref player splits): games, W-L-D and headline averages over
+    """A splits row (BBref player splits): games, W-D-L and headline averages over
     a subset of a player's game log. Averages skip games that didn't track a stat."""
     def avg(k):
         vals = [r[k] for r in rows if r.get(k) is not None]
@@ -2238,7 +2238,7 @@ def compute_records(games, players, team_by_season, seasons):
     sadd("Highest scoring", "ppg", lambda t: t["ppg_for"], lambda t: t["ppg_for"])
     sadd("Stingiest defence", "def", lambda t: -t["ppg_against"], lambda t: t["ppg_against"])
     sadd("Best win %", "pct", lambda t: (t["record"]["w"] / max(t["record"]["w"] + t["record"]["l"], 1)),
-         lambda t: f"{t['record']['w']}-{t['record']['l']}{('-' + str(t['record']['d'])) if t['record']['d'] else ''}")
+         lambda t: f"{t['record']['w']}-{t['record']['d']}-{t['record']['l']}")
     # longest win streak, all-time, from the game order
     best_streak = {"n": 0}
     for sk in scope:
@@ -2591,7 +2591,7 @@ def main():
     passed = sum(1 for c in checks if c["ok"])
     print(f"Games:   {len(data['games'])}")
     print(f"Players: {len(data['players'])}")
-    print(f"Record:  {data['team']['record']['w']}-{data['team']['record']['l']}-{data['team']['record']['d']}")
+    print(f"Record:  {data['team']['record']['w']}-{data['team']['record']['d']}-{data['team']['record']['l']}")
     print(f"Checks:  {passed}/{len(checks)} passed")
     for c in checks:
         if not c["ok"]:
