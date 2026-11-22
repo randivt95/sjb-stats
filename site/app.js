@@ -1130,7 +1130,10 @@ function viewTeam() {
     ${cell(l.min)}${intCell(l.for)}${intCell(l.against)}${pmCell(l.plus_minus)}
   </tr>`).join("");
 
-  const h2hRows = (t.head_to_head || []).map(h => `<tr>
+  // only opponents faced more than once — a single meeting is just its game,
+  // already in the schedule; head-to-head earns its place on rematches.
+  const h2hRepeat = (t.head_to_head || []).filter(h => h.g >= 2);
+  const h2hRows = h2hRepeat.map(h => `<tr>
     <td><a href="#/game/${h.last_id}">${esc(h.opponent)}</a></td>
     ${intCell(h.g)}
     <td class="num" data-v="${h.w * 100 - h.l}">${recStr(h)}</td>
@@ -1224,13 +1227,13 @@ function viewTeam() {
     <p class="muted" style="font-size:12px;margin-top:8px">Each opponent's strength is its league average margin from the ladder; the adjusted margin adds that to SJB's own.${(t.sos && t.sos.grades && t.sos.grades.length > 1) ? " Split by grade — margins in different grades aren't on the same scale." : ""}${t.upcoming_sos ? " Upcoming uses each remaining opponent's current ladder rating." : ""}</p>
   </div>` : ""}
 
-  <div class="card"><h2>Head-to-head</h2>
+  ${h2hRepeat.length ? `<div class="card"><h2>Rivalries &amp; rematches <span class="hint">opponents faced more than once</span></h2>
     <div class="table-scroll"><table class="stat">
       <thead><tr>${th("Opponent")}${th("G")}${th("Record", { sortable: false })}${th("PPG for")}${th("PPG agst")}${th("Margin")}</tr></thead>
-      <tbody>${h2hRows || `<tr><td class="muted" colspan="6">No games yet.</td></tr>`}</tbody>
+      <tbody>${h2hRows}</tbody>
     </table></div>
-    <p class="muted" style="font-size:12px;margin-top:10px">Record includes forfeits; the scoring averages use played games only.</p>
-  </div>
+    <p class="muted" style="font-size:12px;margin-top:10px">One-off opponents are in the <a href="#/schedule">schedule</a>. Record includes forfeits; the scoring averages use played games only.</p>
+  </div>` : ""}
 
   ${(t.player_impact && t.player_impact.length) ? `<div class="card"><h2>On/off impact <span class="hint">team margin per 40 min, on court vs off</span></h2>
     <div class="table-scroll"><table class="stat">
