@@ -1114,14 +1114,13 @@ function viewTeam() {
   const shoot = [
     ["Field goals", t.totals, t.opp_totals, "fgm", "fga", t.fg_pct, t.opp_fg_pct],
     ["Three-point", t.totals, t.opp_totals, "tpm", "tpa", t.tp_pct, t.opp_tp_pct],
-    ["Free throws", t.totals, t.opp_totals, "ftm", "fta", t.ft_pct, null],
+    ["Free throws", t.totals, t.opp_totals, "ftm", "fta", t.ft_pct, t.opp_ft_pct],
   ].map(([k, us, op, m, aa, up, opp]) => `<tr><td>${k}</td>
     <td class="num">${us[m]}-${us[aa]}${up != null ? ` · ${n(up)}%` : ""}</td>
     <td class="num">${op[m]}-${op[aa]}${opp != null ? ` · ${n(opp)}%` : ""}</td></tr>`).join("");
 
   const defRows = t.defense_rows.map(r => `<tr>
     <td><a href="#/game/${r.game_id}">${esc(r.opponent)}</a></td>
-    <td class="num" data-v="${(r.date || "").replace(/-/g, "")}">${esc(r.date_disp)}</td>
     ${intCell(r.opp_pts)}${cell(r.def_rtg)}${cell(r.opp_poss)}${intCell(r.tov_forced)}${pmCell(r.tov_margin)}
     <td>${r.partial ? '<span class="tag warn">not tracked</span>' : r.reliable ? "" : '<span class="tag warn">partial</span>'}</td>
   </tr>`).join("");
@@ -1207,20 +1206,20 @@ function viewTeam() {
 
   ${(t.sos && t.sos.grades || t.upcoming_sos) ? `<div class="card"><h2>Strength of schedule <span class="hint">opponent-adjusted, from the ladder</span></h2>
     ${(t.sos && t.sos.grades) ? t.sos.grades.map(gr => `
-      ${gr.label ? `<div style="font-weight:700;font-size:13px;margin:12px 0 6px;color:var(--muted)">${esc(gr.label)} <span style="font-weight:400">· ${gr.games} rated games</span></div>` : ""}
+      ${gr.label ? `<div style="font-weight:700;font-size:13px;margin:12px 0 6px;color:var(--muted)">${esc(gr.label)} <span style="font-weight:400">· ${gr.games_label ? esc(gr.games_label) : `${gr.games} rated games`}</span></div>` : ""}
       <div class="tiles">
         <div class="tile"><div class="k">Avg margin</div><div class="v">${gr.avg_margin > 0 ? "+" : ""}${n(gr.avg_margin)}</div><div class="note">vs rated opponents</div></div>
         <div class="tile"><div class="k">Strength of schedule</div><div class="v">${gr.sos > 0 ? "+" : ""}${n(gr.sos)}</div><div class="note">avg opponent rating</div></div>
         <div class="tile hi"><div class="k">Adjusted margin</div><div class="v">${gr.adj_margin > 0 ? "+" : ""}${n(gr.adj_margin)}</div><div class="note">margin + SoS (SRS-lite)</div></div>
       </div>`).join("") : ""}
     ${t.upcoming_sos ? `
-      <div style="font-weight:700;font-size:13px;margin:14px 0 6px;color:var(--muted)">Remaining schedule <span style="font-weight:400">· ${t.upcoming_sos.total} game${t.upcoming_sos.total === 1 ? "" : "s"} left</span></div>
+      <div style="font-weight:700;font-size:13px;margin:14px 0 6px;color:var(--muted)">Remaining games <span style="font-weight:400">· ${t.upcoming_sos.total} round${t.upcoming_sos.total === 1 ? "" : "s"} left${t.upcoming_sos.fixtured != null ? ` (${t.upcoming_sos.fixtured} game${t.upcoming_sos.fixtured === 1 ? "" : "s"} fixtured)` : ""}</span></div>
       <div class="tiles">
         <div class="tile hi"><div class="k">Upcoming SoS</div><div class="v">${t.upcoming_sos.sos > 0 ? "+" : ""}${n(t.upcoming_sos.sos)}</div><div class="note">avg rating of teams left</div></div>
       </div>
       <div class="table-scroll" style="margin-top:8px"><table class="stat">
-        <thead><tr>${th("Next", { sortable: false })}${th("Opponent", { sortable: false })}${th("", { sortable: false })}${th("Rating", { sortable: false, title: "Opponent's current league average margin" })}</tr></thead>
-        <tbody>${t.upcoming_sos.next.map(g => `<tr><td>${esc(g.round || "")}</td><td>${esc(g.opponent || "")}</td><td class="muted">${g.home ? "vs" : "@"}</td>${g.rating == null ? '<td class="num">—</td>' : pmCell(g.rating)}</tr>`).join("")}</tbody>
+        <thead><tr>${th("Next", { sortable: false })}${th("Opponent", { sortable: false })}${th("Rating", { sortable: false, title: "Opponent's current league average margin" })}</tr></thead>
+        <tbody>${t.upcoming_sos.next.map(g => `<tr><td>${esc(g.round || "")}</td><td>${esc(g.opponent || "")}</td>${g.rating == null ? '<td class="num">—</td>' : pmCell(g.rating)}</tr>`).join("")}</tbody>
       </table></div>` : ""}
     <p class="muted" style="font-size:12px;margin-top:8px">Each opponent's strength is its league average margin from the ladder; the adjusted margin adds that to SJB's own.${(t.sos && t.sos.grades && t.sos.grades.length > 1) ? " Split by grade — margins in different grades aren't on the same scale." : ""}${t.upcoming_sos ? " Upcoming uses each remaining opponent's current ladder rating." : ""}</p>
   </div>` : ""}
@@ -1258,9 +1257,9 @@ function viewTeam() {
 
   <div class="card"><h2>Defence &amp; opponent tracking <span class="hint">${t.reliable_count}/${t.games_tracked} games with complete opponent turnovers</span></h2>
     <div class="table-scroll"><table class="stat">
-      <thead><tr>${th("Opponent")}${th("Date")}${th("Opp PTS")}${th("Def rtg")}${th("Opp poss")}${th("TOV forced")}${th("TOV margin")}${th("", { sortable: false })}</tr></thead>
+      <thead><tr>${th("Opponent")}${th("Opp PTS")}${th("Def rtg")}${th("Opp poss")}${th("TOV forced")}${th("TOV margin")}${th("", { sortable: false })}</tr></thead>
       <tbody>${defRows}
-        <tr class="total"><td>Season</td><td></td>${intCell(t.pts_against)}${cell(adv.def_rtg)}${cell(null)}${intCell(t.opp_totals.to)}${pmCell(t.tov_margin)}<td></td></tr>
+        <tr class="total"><td>Season</td>${intCell(t.pts_against)}${cell(adv.def_rtg)}${cell(null)}${intCell(t.opp_totals.to)}${pmCell(t.tov_margin)}<td></td></tr>
       </tbody>
     </table></div>
   </div>
@@ -1460,7 +1459,7 @@ function viewAwards() {
       { h: "Rating", key: "mvp", title: "Game Score per team game — rewards being both excellent and available" },
       SHARE_COL,
       { h: "GmSc", key: "gmsc_avg" }, { h: "Avail", fmt: awPct, title: "Share of the team's tracked games played" },
-      { h: "PTS", key: "pts" }, { h: "TS%", key: "ts" }]);
+      { h: "PPG", key: "pts", title: "Points per game" }, { h: "TS%", key: "ts" }]);
 
   const mipArrow = (a, b) => `${a}&nbsp;→&nbsp;${b}`;
   const mip = awCard("Most Improved", "biggest all-round jump in Game Score vs last season", aw.mip, live,
@@ -1474,7 +1473,7 @@ function viewAwards() {
     w => w.def, [{ h: "DEF", key: "def", title: "Defensive score per game: steals + 2.5 × blocks. Blocks are weighted up because the league averages ~4.7 steals per block, so at 1:1 they'd be drowned out" }, SHARE_COL, { h: "STL", key: "stl" }, { h: "BLK", key: "blk" }, { h: "GmSc", key: "gmsc_avg" }]);
 
   const clutch = awCard("Most Clutch", "points in the last 5 min, margin ≤ 5", aw.clutch, live,
-    w => w.clutch + " pts", [{ h: "Clutch", key: "clutch", title: "Points scored in the last 5:00 of the final half with the score within 5" }, SHARE_COL, { h: "PTS", key: "pts" }, { h: "GmSc", key: "gmsc_avg" }]);
+    w => w.clutch + " pts", [{ h: "Clutch", key: "clutch", title: "Points scored in the last 5:00 of the final half with the score within 5" }, SHARE_COL, { h: "PPG", key: "pts", title: "Points per game" }, { h: "GmSc", key: "gmsc_avg" }]);
 
   const ironman = awCard("Durability", "most minutes played", aw.ironman, live,
     w => w.min_total + " min", [{ h: "Min", key: "min_total" }, SHARE_COL, { h: "Games", key: "g" }, { h: "MPG", key: "mpg" }]);
@@ -1554,7 +1553,7 @@ function viewFrivolities() {
   const cardHtml = c => `<div class="card friv">
     <div class="award-head"><h2>${esc(c.title)}</h2>${c.note ? `<span class="award-sub">${esc(c.note)}</span>` : ""}</div>
     <ul class="friv-list">${c.items.map(it => `<li class="friv-row">
-      <span class="friv-main">${frivLabel(it)}${it.sub ? ` <span class="friv-sub">${esc(it.sub)}</span>` : ""}</span>
+      <span class="friv-main">${frivLabel(it)}${it.live ? ` <span class="friv-live" title="Still active — this streak is ongoing">● live</span>` : ""}${it.sub ? ` <span class="friv-sub">${esc(it.sub)}</span>` : ""}</span>
       <span class="friv-val">${esc(it.val)}</span>
     </li>`).join("")}</ul>
   </div>`;

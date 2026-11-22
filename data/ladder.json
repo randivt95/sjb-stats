@@ -24,7 +24,7 @@
   "season-2": {
     "updated": "2026-11-15",
     "status": "in_progress",
-    "grade_label": "C Grade 2 · current",
+    "grade_label": "C2 Grade · current",
     "ranked_by": "Points average, then percentage, then points for",
     "note": "Live from the official PlayHQ ladder (MCBA Sunday Men C Grade 2, Summer 2026/27), refreshed on each build.",
     "source": {"playhq_grade_id": "f7e657dc", "tenant": "basketball-victoria"},
@@ -45,7 +45,8 @@
   },
   "season-2-d1": {
     "parent": "season-2",
-    "grade_label": "Division 1 · Rounds 1–4 (promoted to C Grade 2)",
+    "grade_label": "D1 Grade",
+    "games_label": "4 games (then promoted)",
     "updated": "2026-10-18",
     "status": "final",
     "ranked_by": "Points average, then percentage, then points for",

@@ -796,6 +796,7 @@ def load_ladder():
             "ranked_by": blk.get("ranked_by"),
             "note": blk.get("note"),
             "grade_label": blk.get("grade_label"),
+            "games_label": blk.get("games_label"),
             "parent": blk.get("parent"),
             "teams": rows,
         }
@@ -1550,6 +1551,7 @@ def build_team(games):
         "fg_pct": pct(tot["fgm"], tot["fga"]), "tp_pct": pct(tot["tpm"], tot["tpa"]),
         "ft_pct": pct(tot["ftm"], tot["fta"]),
         "opp_fg_pct": pct(otot["fgm"], otot["fga"]), "opp_tp_pct": pct(otot["tpm"], otot["tpa"]),
+        "opp_ft_pct": pct(otot["ftm"], otot["fta"]),
         "advanced": {
             "off_rtg": round(100 * tot["pts"] / poss, 1) if poss else None,
             "def_rtg": round(100 * otot["pts"] / opp_poss, 1) if opp_poss else None,
@@ -1875,7 +1877,7 @@ def compute_frivolities(games, players):
             cards.append({"section": section, "id": cid, "title": title,
                           "note": note, "items": items})
 
-    def it(val, players=None, game=None, label=None, sub="", join=" + "):
+    def it(val, players=None, game=None, label=None, sub="", join=" + ", live=False):
         d = {"val": val, "sub": sub, "join": join}
         if players:
             d["players"] = players
@@ -1883,6 +1885,8 @@ def compute_frivolities(games, players):
             d["game"] = game
         if label:
             d["label"] = label
+        if live:
+            d["live"] = True          # streak/run is still active through the latest game
         return d
 
     real = [g for g in games if g.get("level") != "forfeit"]           # has real scores
@@ -1988,10 +1992,13 @@ def compute_frivolities(games, players):
                 best, best_start, best_end = run, run_start, x
             prev = x
         if best >= 3:
-            streaks.append((p["name"], best, best_start, best_end))
+            # the run is still live if the record streak reaches the latest contested game
+            active = best_end == len(contested) - 1
+            streaks.append((p["name"], best, best_start, best_end, active))
     streaks.sort(key=lambda x: -x[1])
     card("Individuals", "ironstreak", "Longest run of consecutive games played", "",
-         [it(f"{c} games", players=[_fp(nm)], sub=_streak_span(bs, be)) for nm, c, bs, be in streaks[:4]])
+         [it(f"{c} games", players=[_fp(nm)], sub=_streak_span(bs, be), live=active)
+          for nm, c, bs, be, active in streaks[:4]])
 
     # plus/minus kings (career per-game, min 6 g)
     pm = [(p, p["plus_minus_avg"]) for p in players if p["games"] >= 6 and p.get("plus_minus_avg") is not None]
@@ -2116,10 +2123,11 @@ def compute_frivolities(games, players):
             else:
                 run = 0
         if best >= 2:
-            ddstreak.append((p["name"], best))
+            # live if the current ongoing run is the record one (last game was 10+)
+            ddstreak.append((p["name"], best, run == best))
     ddstreak.sort(key=lambda x: -x[1])
     card("Individuals", "ddstreak", "Double-digit streak", "longest run of consecutive games scoring 10+",
-         [it(f"{c} games", players=[_fp(nm)]) for nm, c in ddstreak[:4]])
+         [it(f"{c} games", players=[_fp(nm)], live=active) for nm, c, active in ddstreak[:4]])
 
     # ---- Game shape & team --------------------------------------------------
     def margin_extremes(g):
@@ -2302,8 +2310,10 @@ def upcoming_strength(fix_block, ladder_block):
             rated.append(r)
     if len(rated) < 2:
         return None
+    fixtured = sum(1 for g in upcoming if g.get("opponent"))
     return {"sos": round(sum(rated) / len(rated), 1), "games": len(rated),
-            "total": len(upcoming), "next": nxt[:6], "updated": fix_block.get("updated")}
+            "total": len(upcoming), "fixtured": fixtured,
+            "next": nxt[:6], "updated": fix_block.get("updated")}
 
 
 def strength_of_schedule(games, ladder, season_key):
@@ -2346,6 +2356,7 @@ def strength_of_schedule(games, ladder, season_key):
         avg_margin = sum(margins) / len(margins)
         grades.append({
             "label": blk.get("grade_label", ""),
+            "games_label": blk.get("games_label"),      # overrides the "· N rated games" suffix
             "sos": round(sos, 1),
             "avg_margin": round(avg_margin, 1),
             "adj_margin": round(avg_margin + sos, 1),
