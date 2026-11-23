@@ -2540,6 +2540,52 @@ def build():
                      "value": val, "stat": stat}
         potg_counts[best["name"]] = potg_counts.get(best["name"], 0) + 1
 
+    # Career highs: a box stat is flagged when it equals the player's best-ever
+    # value for that stat across all their games — the game(s) where they set or
+    # matched their personal record. A value is only eligible once the player has
+    # the stat recorded in at least two games, so a lone appearance isn't
+    # trivially a "high" and debuts don't light up. Because it tracks the all-time
+    # best, only the current record game stays starred: a mark that's later beaten
+    # quietly hands the star to the bigger game, so a box score never shows a
+    # stale "career high" that a later game has already surpassed.
+    CAREER_HIGH_STATS = ("pts", "reb", "ast", "stl", "blk")
+    career_best, stat_games = {}, {}   # (player, stat) -> best value / games seen
+    for g in games:
+        if g.get("level") == "forfeit":
+            continue
+        for p in g.get("box_us", []):
+            for s in CAREER_HIGH_STATS:
+                v = p.get(s)
+                if v is None:
+                    continue
+                key = (p["name"], s)
+                stat_games[key] = stat_games.get(key, 0) + 1
+                if v > career_best.get(key, -1):
+                    career_best[key] = v
+    # Mark only the FIRST game (games are chronological) that reaches a player's
+    # record for a stat — the moment they set the mark. Later games that merely
+    # tie it aren't re-flagged, so a modest record (e.g. a best of 1 block) isn't
+    # starred in every game it recurs. A record below 2 is too trivial to call a
+    # career high, and the stat must appear in 2+ games (so debuts/lone games and
+    # one-off tallies don't light up).
+    CAREER_HIGH_MIN = 2
+    starred = set()            # (player, stat) already marked
+    for g in games:
+        if g.get("level") == "forfeit":
+            continue
+        for p in g.get("box_us", []):
+            hi = []
+            for s in CAREER_HIGH_STATS:
+                key = (p["name"], s)
+                if (p.get(s) is not None and p[s] >= CAREER_HIGH_MIN
+                        and p[s] == career_best.get(key)
+                        and stat_games.get(key, 0) >= 2
+                        and key not in starred):
+                    hi.append(s)
+                    starred.add(key)
+            if hi:
+                p["career_high"] = hi
+
     checks = validate(games, warnings)
 
     players = build_players(games)

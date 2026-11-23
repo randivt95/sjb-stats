@@ -265,6 +265,12 @@ tr.low-sample td { background: rgba(0, 0, 0, .018); }
 span.low-sample { opacity: .6; }
 .award-note { font-size: 11px; margin-top: 8px; }
 
+/* career-high box-score cell: bold value + a small gold star */
+td.career-high { font-weight: 700; }
+.ch-mark, .ch-legend .career-high { color: #b8860b; font-weight: 700; }
+.ch-mark { font-size: 9px; vertical-align: super; margin-left: 1px; }
+.ch-legend { font-size: 11px; margin-top: 6px; }
+
 /* league ladder */
 .ladder-pos { display: flex; align-items: center; gap: 12px; background: #eef3f8; border: 1px solid #b9ccdd;
   border-radius: 3px; padding: 10px 14px; margin-bottom: 16px; }

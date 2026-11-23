@@ -37,6 +37,13 @@ function splitCell(m, a) {
   const pctv = a ? (100 * m / a) : -Infinity;
   return `<td class="num" data-v="${pctv}">${m}-${a}</td>`;
 }
+/* an integer box-score cell that marks a career high (bold + ★) when `hi` */
+const CH_LABEL = { pts: "points", reb: "rebounds", ast: "assists", stl: "steals", blk: "blocks" };
+function chCell(v, stat, highs) {
+  if (v === null || v === undefined) return cell(v, 0);
+  if (!highs || !highs.includes(stat)) return intCell(v);
+  return `<td class="num career-high" data-v="${Number(v)}" title="Career high — ${v} ${CH_LABEL[stat] || stat}">${n(v, 0)}<span class="ch-mark">★</span></td>`;
+}
 /* win–draw–loss record, always rendered W-D-L (draws shown even at 0) */
 function recStr(o) { return `${o.w}-${o.d}-${o.l}`; }
 function resultPill(r) {
@@ -506,9 +513,9 @@ function boxTable(players, { team, opp, opponent }) {
   </tr></thead>`;
   const row = p => `<tr>
     <td>${playerLink(p)}</td>
-    ${cell(p.min, 0)}${intCell(p.pts)}
+    ${cell(p.min, 0)}${chCell(p.pts, "pts", p.career_high)}
     ${splitCell(p.fgm, p.fga)}${splitCell(p.tpm, p.tpa)}${splitCell(p.ftm, p.fta)}
-    ${intCell(p.oreb)}${intCell(p.dreb)}${intCell(p.reb)}${intCell(p.ast)}${intCell(p.stl)}${intCell(p.blk)}${intCell(p.to)}${intCell(p.foul)}
+    ${intCell(p.oreb)}${intCell(p.dreb)}${chCell(p.reb, "reb", p.career_high)}${chCell(p.ast, "ast", p.career_high)}${chCell(p.stl, "stl", p.career_high)}${chCell(p.blk, "blk", p.career_high)}${intCell(p.to)}${intCell(p.foul)}
     ${pmCell(p.plus_minus)}${cell(p.gmsc)}${cell(p.fp)}
   </tr>`;
   const totalRow = (l, label) => `<tr class="total">
@@ -517,10 +524,12 @@ function boxTable(players, { team, opp, opponent }) {
     ${intCell(l.oreb)}${intCell(l.dreb)}${intCell(l.reb)}${intCell(l.ast)}${intCell(l.stl)}${intCell(l.blk)}${intCell(l.to)}${intCell(l.foul)}
     ${cell(null)}${cell(null)}${cell(null)}
   </tr>`;
+  const anyHigh = players.some(p => p.career_high && p.career_high.length);
+  const legend = anyHigh ? `<p class="muted ch-legend"><span class="career-high">★</span> career high — a new personal best in that stat</p>` : "";
   return `<div class="table-scroll"><table class="stat">${head}<tbody>
     ${players.map(row).join("")}
     ${totalRow(team, "Shake Jelly Balls")}
-  </tbody></table></div>`;
+  </tbody></table></div>${legend}`;
 }
 
 /* a game that wasn't video-recorded: final score, per-player points and the
@@ -535,8 +544,10 @@ function viewPartialGame(g, won) {
   const tl = g.team_line || {};
   let tTwo = 0, tThree = 0, tFt = 0;
   if (hasScoring) for (const k in sc) { tTwo += sc[k].two || 0; tThree += sc[k].three || 0; tFt += sc[k].ft || 0; }
-  const extraCells = p => `${hasScoring ? `${intCell((sc[p.name] || {}).two)}${intCell((sc[p.name] || {}).three)}${intCell((sc[p.name] || {}).ft)}` : ""}${hasReb ? intCell(p.reb) : ""}${hasAst ? intCell(p.ast) : ""}${hasFoul ? intCell(p.foul) : ""}`;
-  const scorers = g.box_us.map(p => `<tr><td>${playerLink(p)}</td>${intCell(p.pts)}${extraCells(p)}</tr>`).join("");
+  const extraCells = p => `${hasScoring ? `${intCell((sc[p.name] || {}).two)}${intCell((sc[p.name] || {}).three)}${intCell((sc[p.name] || {}).ft)}` : ""}${hasReb ? chCell(p.reb, "reb", p.career_high) : ""}${hasAst ? chCell(p.ast, "ast", p.career_high) : ""}${hasFoul ? intCell(p.foul) : ""}`;
+  const scorers = g.box_us.map(p => `<tr><td>${playerLink(p)}</td>${chCell(p.pts, "pts", p.career_high)}${extraCells(p)}</tr>`).join("");
+  const anyHigh = g.box_us.some(p => p.career_high && p.career_high.length);
+  const chLegend = anyHigh ? `<p class="muted ch-legend"><span class="career-high">★</span> career high — a new personal best in that stat</p>` : "";
   const boxTitle = (hasReb || hasAst) ? "Box score" : "Scoring";
   const boxHint = (hasReb || hasAst) ? "points, rebounds, assists &amp; fouls — no shooting splits or steals/blocks recorded"
     : hasScoring ? "points &amp; made shots only — no attempts, rebounds or defence recorded"
@@ -569,7 +580,7 @@ function viewPartialGame(g, won) {
         <tbody>${scorers}
           <tr class="total"><td>Shake Jelly Balls</td>${intCell(g.us)}${hasScoring ? `${intCell(tTwo)}${intCell(tThree)}${intCell(tFt)}` : ""}${hasReb ? intCell(tl.reb) : ""}${hasAst ? intCell(tl.ast) : ""}${hasFoul ? intCell(tl.foul) : ""}</tr>
         </tbody>
-      </table></div>
+      </table></div>${chLegend}
     </div>
     <div class="card"><h2>By half <span class="hint">${fromPbp ? "from the scoring play-by-play" : "team scores by half"}</span></h2>
       <div class="table-scroll"><table class="stat">
