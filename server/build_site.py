@@ -54,9 +54,13 @@ MONTHS = {"jan": 1, "feb": 2, "mar": 3, "apr": 4, "may": 5, "jun": 6,
 # and a lowercase "old xaverians" that should read "Old Xaverians").
 def pretty_opponent(raw):
     raw = raw.strip()
+    # preserve a word that mixes digits and letters (e.g. "3M") rather than let
+    # str.capitalize() lowercase it to "3m"; all-alpha words still normalise, so
+    # "HOOPS"/"hoops" both become "Hoops" and group as one opponent.
+    cap = lambda w: w if any(c.isdigit() for c in w) else w.capitalize()
     if raw.lower().startswith("rmit"):
-        return "RMIT " + " ".join(w.capitalize() for w in raw.split()[1:])
-    return " ".join(w.capitalize() for w in raw.split())
+        return "RMIT " + " ".join(cap(w) for w in raw.split()[1:])
+    return " ".join(cap(w) for w in raw.split())
 
 
 def slugify(text):
