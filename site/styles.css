@@ -262,6 +262,8 @@ table.stat .muted { color: var(--faint); }
 .lo-flag { color: var(--faint); font-weight: 700; margin-left: 2px; }
 tr.low-sample .lo-diff { opacity: .62; }
 tr.low-sample td { background: rgba(0, 0, 0, .018); }
+span.low-sample { opacity: .6; }
+.award-note { font-size: 11px; margin-top: 8px; }
 
 /* league ladder */
 .ladder-pos { display: flex; align-items: center; gap: 12px; background: #eef3f8; border: 1px solid #b9ccdd;

@@ -1595,6 +1595,10 @@ DEF_BLK_WEIGHT = 2.5       # DPOY: a block counts 2.5x a steal. The league avera
                            # while putting the roster's shot-blocker into real contention.
 CLUTCH_SECS = 300          # "clutch" = last 5:00 of the final half...
 CLUTCH_MARGIN = 5          # ...with the score within 5 points at the basket
+CLUTCH_TS_MIN_FGA = 4      # clutch TS% is only trusted as a tiebreaker once a
+                           # player has at least this many clutch FG attempts;
+                           # below it a single shot swings the % too far, so the
+                           # tie falls back to season PPG.
 
 
 def _aw_reg(g):
@@ -1607,30 +1611,51 @@ def _ts_pct(pts, fga, fta):
     return round(100.0 * pts / (2 * tsa), 1) if tsa > 0 else None
 
 
-def _clutch_points(g):
-    """{player: clutch points} for one game, from the play-by-play: SJB makes in the
-    last CLUTCH_SECS of the final half while the margin was within CLUTCH_MARGIN."""
+CLUTCH_FGA_KINDS = {"TwoPointFG", "ThreePointFG", "TwoPointFGMiss", "ThreePointFGMiss"}
+CLUTCH_FTA_KINDS = {"OnePointFG", "OnePointFGMiss"}
+
+
+def _clutch_stats(g):
+    """{player: {"pts","fga","fta"}} for one game's clutch window: the last
+    CLUTCH_SECS of the final half while the margin was within CLUTCH_MARGIN.
+    Points count only makes (identical to the old clutch-points total); fga/fta
+    count every shot attempted in the window so clutch true shooting can be
+    computed. Free throws are attempts but not field goals, so they lift TS%
+    without inflating FG volume."""
     out = {}
     feed = g.get("pbp") or []
     if not feed:
         return out
     last_half = max((e["half"] for e in feed), default=1)
     for e in feed:
-        if not e.get("score") or e.get("team") != "us":
+        if e.get("team") != "us":
             continue
         if e.get("half") != last_half or (e.get("clock") or 9999) > CLUTCH_SECS:
             continue
+        kind = e.get("kind")
+        is_fga = kind in CLUTCH_FGA_KINDS
+        is_fta = kind in CLUTCH_FTA_KINDS
+        if not (is_fga or is_fta):
+            continue
+        # margin at the shot: for a make, the nearer of before/after; a miss
+        # changes nothing so before == after.
         after = e["us"] - e["them"]
-        before = (e["us"] - e["pts"]) - e["them"]
-        if min(abs(after), abs(before)) <= CLUTCH_MARGIN:
-            out[e["who"]] = out.get(e["who"], 0) + e["pts"]
+        before = (e["us"] - e.get("pts", 0)) - e["them"]
+        if min(abs(after), abs(before)) > CLUTCH_MARGIN:
+            continue
+        d = out.setdefault(e["who"], {"pts": 0, "fga": 0, "fta": 0})
+        d["pts"] += e.get("pts", 0)
+        if is_fga:
+            d["fga"] += 1
+        else:
+            d["fta"] += 1
     return out
 
 
 def _aw_blank(name):
     return {"name": name, "slug": slugify(name), "g": 0, "min": 0.0, "gmsc": 0.0,
             "pts": 0, "reb": 0, "ast": 0, "stl": 0, "blk": 0, "fga": 0, "fta": 0,
-            "pm": 0, "clutch": 0, "pra_log": []}
+            "pm": 0, "clutch": 0, "clutch_fga": 0, "clutch_fta": 0, "pra_log": []}
 
 
 def _aw_aggregate(games):
@@ -1661,9 +1686,11 @@ def _aw_aggregate(games):
             d["pm"] += p.get("plus_minus") or 0
         if tracked:
             blk["team_games"] += 1
-        for name, pts in _clutch_points(g).items():
+        for name, cs in _clutch_stats(g).items():
             d = blk["players"].setdefault(name, _aw_blank(name))
-            d["clutch"] += pts
+            d["clutch"] += cs["pts"]
+            d["clutch_fga"] += cs["fga"]
+            d["clutch_fta"] += cs["fta"]
     return seasons
 
 
@@ -1689,6 +1716,9 @@ def _aw_rows(blk):
             "mvp": round(d["gmsc"] / tg, 2),              # value per team game
             "avail": round(g / tg, 2) if tg else 0.0,
             "clutch": d["clutch"],
+            "clutch_fga": d["clutch_fga"],
+            "clutch_fta": d["clutch_fta"],
+            "clutch_ts": _ts_pct(d["clutch"], d["clutch_fga"], d["clutch_fta"]),
             "min_total": round(d["min"]),
         })
     return rows
@@ -1749,7 +1779,16 @@ def compute_awards(games, seasons_meta):
         award("mvp", "MVP", pick(elig, "mvp", "gmsc_avg"), "mvp")
         award("dpoy", "DPOY", pick(elig, "def", "stl"), "def")
         award("ironman", "Durability", pick(elig, "min_total", "g"), "min_total")
-        award("clutch", "Clutch", pick(rows, "clutch", "pts", need_positive=True, pool=rows), "clutch")
+        # Clutch is sorted on raw clutch points (a clutch free throw still
+        # counts), tie-broken by clutch TS% — but only when a player has enough
+        # clutch FG attempts to trust it; otherwise the tie falls back to PPG,
+        # so a 1-of-1 can't leapfrog a real sample.
+        def _clutch_key(r):
+            ts = r.get("clutch_ts")
+            guarded = ts if (ts is not None and r.get("clutch_fga", 0) >= CLUTCH_TS_MIN_FGA) else -1.0
+            return (-(r.get("clutch") or 0), -guarded, -(r.get("pts") or 0))
+        clutch_cand = sorted((r for r in rows if (r.get("clutch") or 0) > 0), key=_clutch_key)
+        award("clutch", "Clutch", clutch_cand, "clutch")
 
         if idx > 0:                                   # Most Improved needs a prior season
             # MIP = the biggest all-round jump in Game Score per game. Game Score already
@@ -1817,18 +1856,25 @@ def compute_awards(games, seasons_meta):
         for d in blk["players"].values():
             c = career.setdefault(d["name"], {"name": d["name"], "slug": d["slug"],
                                               "g": 0, "min": 0.0, "gmsc": 0.0, "pts": 0,
-                                              "stl": 0, "blk": 0, "clutch": 0})
-            for k in ("g", "min", "gmsc", "pts", "stl", "blk", "clutch"):
+                                              "stl": 0, "blk": 0, "clutch": 0,
+                                              "clutch_fga": 0, "clutch_fta": 0})
+            for k in ("g", "min", "gmsc", "pts", "stl", "blk", "clutch",
+                      "clutch_fga", "clutch_fta"):
                 c[k] += d[k]
     tg = total_tg or 1
     car = [{"name": c["name"], "slug": c["slug"], "g": c["g"],
             "mvp": round(c["gmsc"] / tg, 2), "gmsc_avg": round(c["gmsc"] / c["g"], 1) if c["g"] else 0,
-            "clutch": c["clutch"], "stlblk": round(c["stl"] + DEF_BLK_WEIGHT * c["blk"], 1),
+            "clutch": c["clutch"], "clutch_fga": c["clutch_fga"], "clutch_fta": c["clutch_fta"],
+            "clutch_ts": _ts_pct(c["clutch"], c["clutch_fga"], c["clutch_fta"]),
+            "stlblk": round(c["stl"] + DEF_BLK_WEIGHT * c["blk"], 1),
             "def": round((c["stl"] + DEF_BLK_WEIGHT * c["blk"]) / c["g"], 1) if c["g"] else 0}
            for c in career.values()]
     career_leaders = {
         "mvp": sorted(car, key=lambda r: -r["mvp"])[:5],
-        "clutch": sorted([r for r in car if r["clutch"] > 0], key=lambda r: -r["clutch"])[:5],
+        "clutch": sorted([r for r in car if r["clutch"] > 0],
+                         key=lambda r: (-(r["clutch"]),
+                                        -(r["clutch_ts"] if (r["clutch_ts"] is not None and r["clutch_fga"] >= CLUTCH_TS_MIN_FGA) else -1.0),
+                                        -(r["mvp"] or 0)))[:5],
         "defense": sorted(car, key=lambda r: -r["stlblk"])[:5],
     }
     winners = []

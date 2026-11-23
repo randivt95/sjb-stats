@@ -1441,7 +1441,7 @@ function awCands(cands, cols) {
 }
 
 const SHARE_COL = { h: "Share", fmt: r => (r.share == null ? "—" : r.share + "%"), title: "This candidate's score as a share of the whole race" };
-function awCard(title, sub, award, live, headline, cols) {
+function awCard(title, sub, award, live, headline, cols, note) {
   if (!award || !award.winner) return "";
   const w = award.winner;
   const share = w.share != null ? ` <span class="aw-share">${w.share}% share</span>` : "";
@@ -1453,7 +1453,18 @@ function awCard(title, sub, award, live, headline, cols) {
       <span class="aw-val">${headline(w)}${share}</span>
     </div>
     ${awCands(award.candidates, cols)}
+    ${note ? `<p class="muted award-note">${note}</p>` : ""}
   </div>`;
+}
+
+// Clutch true shooting for the award table: points ÷ (2·(FGA + 0.44·FTA)) over
+// the clutch window. Flags a † when the FG sample is under the trust threshold.
+const CLUTCH_TS_MIN_FGA = 4;
+function clutchTsCell(r) {
+  if (r.clutch_ts == null) return "—";
+  const lo = (r.clutch_fga || 0) < CLUTCH_TS_MIN_FGA;
+  const tip = `${r.clutch_fga || 0} clutch FGA${r.clutch_fta ? ` · ${r.clutch_fta} FTA` : ""}`;
+  return `<span class="${lo ? "low-sample" : ""}" title="${tip}">${r.clutch_ts}%${lo ? `<span class="lo-flag">†</span>` : ""}</span>`;
 }
 
 function viewAwards() {
@@ -1488,7 +1499,12 @@ function viewAwards() {
     w => w.def, [{ h: "DEF", key: "def", title: "Defensive score per game: steals + 2.5 × blocks. Blocks are weighted up because the league averages ~4.7 steals per block, so at 1:1 they'd be drowned out" }, SHARE_COL, { h: "STL", key: "stl" }, { h: "BLK", key: "blk" }, { h: "GmSc", key: "gmsc_avg" }]);
 
   const clutch = awCard("Most Clutch", "points in the last 5 min, margin ≤ 5", aw.clutch, live,
-    w => w.clutch + " pts", [{ h: "Clutch", key: "clutch", title: "Points scored in the last 5:00 of the final half with the score within 5" }, SHARE_COL, { h: "PPG", key: "pts", title: "Points per game" }, { h: "GmSc", key: "gmsc_avg" }]);
+    w => `${w.clutch} pts${w.clutch_ts != null ? ` · ${w.clutch_ts}% TS` : ""}`,
+    [{ h: "Clutch", key: "clutch", title: "Points scored in the last 5:00 of the final half with the score within 5 — the ranking metric" },
+     SHARE_COL,
+     { h: "TS%", fmt: clutchTsCell, title: "Clutch true shooting: points ÷ (2 × (FGA + 0.44 × FTA)) on shots in the clutch window, folding in free throws. † marks under 4 clutch FG attempts — too small to trust, so it's shown for context only" },
+     { h: "PPG", key: "pts", title: "Points per game" }, { h: "GmSc", key: "gmsc_avg" }],
+    `Ranked on clutch points; ties break on clutch TS% once a player has ${CLUTCH_TS_MIN_FGA}+ clutch FG attempts, otherwise on PPG. <span class="lo-flag">†</span> = TS% on a sub-${CLUTCH_TS_MIN_FGA}-attempt sample, shown for context, not used to rank.`);
 
   const ironman = awCard("Durability", "most minutes played", aw.ironman, live,
     w => w.min_total + " min", [{ h: "Min", key: "min_total" }, SHARE_COL, { h: "Games", key: "g" }, { h: "MPG", key: "mpg" }]);
@@ -1520,7 +1536,7 @@ function viewAwards() {
   const cl = AT.career_leaders || {};
   const careerCards = `<div class="grid cols-3">
     <div class="card"><h2>Career MVP rating</h2>${miniList(cl.mvp, r => r.mvp)}<p class="muted" style="font-size:11px;margin-top:8px">Game Score per team game, all seasons.</p></div>
-    <div class="card"><h2>Career clutch points</h2>${miniList(cl.clutch, r => r.clutch)}</div>
+    <div class="card"><h2>Career clutch points</h2>${miniList(cl.clutch, r => `${r.clutch}${r.clutch_ts != null ? ` <span class="muted" style="font-weight:400">· ${r.clutch_ts}% TS</span>` : ""}`)}</div>
     <div class="card"><h2>Career defence</h2>${miniList(cl.defense, r => r.stlblk)}<p class="muted" style="font-size:11px;margin-top:8px">Weighted steals + blocks (steals + 2.5 × blocks).</p></div>
   </div>`;
 
