@@ -2259,6 +2259,18 @@ def compute_records(games, players, team_by_season, seasons):
     threes = [g for g in tracked if (g.get("team_line") or {}).get("tpm") is not None]
     if threes:
         g = max(threes, key=lambda x: x["team_line"]["tpm"]); tadd("Most threes made", g, g["team_line"]["tpm"])
+    # team single-game counting-stat highs. Guarded on the stat being recorded in
+    # that game's team line (a box-only game carries rebounds/assists but no
+    # steals/blocks/free-throw splits, so those naturally skip it).
+    def tbest(statkey, label):
+        cand = [g for g in scored if (g.get("team_line") or {}).get(statkey) is not None]
+        if cand:
+            g = max(cand, key=lambda x: x["team_line"][statkey])
+            tadd(label, g, g["team_line"][statkey])
+    for sk, lab in [("reb", "Most rebounds"), ("ast", "Most assists"),
+                    ("stl", "Most steals"), ("blk", "Most blocks"),
+                    ("ftm", "Most free throws made")]:
+        tbest(sk, lab)
 
     player_game = []
     def best(statkey, label, as_float=False):
