@@ -1571,6 +1571,22 @@ function viewAwards() {
     </table></div>
     <p class="muted" style="font-size:12px;margin-top:8px">Only concluded seasons are crowned; the current season is a live race above. Statistical titles are each category's season leader (minimum games applied).</p></div>` : "";
 
+  // current-season statistical leaders — shown only while the season is live
+  // (once it concludes it joins the roll of honours), so the live race for the
+  // four category titles stays visible after the standalone card was retired.
+  const curS = A.seasons[A.current_season_key || DATA.current_season_key];
+  const curTitles = (curS && !curS.is_final) ? (curS.awards.titles || {}) : null;
+  const leadCols = [["scoring", "Scoring", "pts", " ppg"], ["rebounding", "Rebounding", "reb", " rpg"],
+                    ["playmaking", "Playmaking", "ast", " apg"], ["efficiency", "Efficiency", "ts", "% TS"]];
+  const leadersStrip = curTitles ? `<div class="card lead-strip">
+    <div class="award-head"><h2>Current statistical leaders</h2><span class="award-sub">${esc(curS.label)} · live race</span></div>
+    <div class="lead-grid">${leadCols.map(([k, lab, mk, suf]) => {
+      const w = curTitles[k];
+      return `<div class="lead-item"><div class="lead-lbl">${lab}</div>${w
+        ? `<div class="lead-nm">${playerLink(find(w.slug))}</div><div class="lead-mark">${w[mk] == null ? "—" : w[mk] + suf}</div>`
+        : `<div class="lead-nm muted">—</div>`}</div>`;
+    }).join("")}</div></div>` : "";
+
   // secondary award cards, two per row
   const secondary = [mip, dpoy, clutch, ironman, reliable].filter(Boolean);
   let secHtml = "";
@@ -1580,6 +1596,7 @@ function viewAwards() {
   return `${header}
     ${mvp}
     ${secHtml}
+    ${leadersStrip}
     <h2 class="aw-section">All-time</h2>
     ${honoursTable}
     ${careerCards}
