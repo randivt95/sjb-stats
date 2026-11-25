@@ -2082,8 +2082,7 @@ def compute_frivolities(games, players):
             ratio.append((p["name"], a, t, round(a / t, 2) if t else a))
     ratio.sort(key=lambda x: -x[3])
     card("Individuals", "floor-general", "Floor generals", "best assist-to-turnover ratio",
-         [it(f"{r}", players=[_fp(nm)], sub=f"{a} ast / {t} to") for nm, a, t, r in ratio[:3]] +
-         [it(f"{r}", players=[_fp(nm)], sub=f"{a} ast / {t} to") for nm, a, t, r in ratio[::-1][:2]])
+         [it(f"{r}", players=[_fp(nm)], sub=f"{a} ast / {t} to") for nm, a, t, r in ratio[:4]])
 
     # first blood (team's opening basket scorer)
     first = Counter()
@@ -2111,6 +2110,20 @@ def compute_frivolities(games, players):
                         key=lambda x: -x[3])
     card("Individuals", "second-half", "Second-half merchants", "share of personal points scored after the break (30+ pts)",
          [it(f"{pct}%", players=[_fp(nm)], sub=f"{h2}/{tot} pts") for nm, h2, tot, pct in secondhalf[:4]])
+
+    # garbage-time merchant (share of own points scored with a 20+ lead already banked)
+    GT_LEAD = 20
+    gt = defaultdict(lambda: [0, 0])     # name -> [garbage pts, total pts]
+    for g in games:
+        for e in (g.get("pbp") or []):
+            if e.get("score") and e.get("team") == "us" and e.get("pts"):
+                gt[e["who"]][1] += e["pts"]
+                if (e["us"] - e["pts"]) - e["them"] >= GT_LEAD:
+                    gt[e["who"]][0] += e["pts"]
+    garbage = sorted([(nm, v[0], v[1], round(100 * v[0] / v[1])) for nm, v in gt.items() if v[1] >= 30],
+                     key=lambda x: -x[3])
+    card("Individuals", "garbage-time", "Garbage-time merchants", "share of personal points scored with a 20+ lead already banked (30+ pts)",
+         [it(f"{pct}%", players=[_fp(nm)], sub=f"{g2}/{tot} pts") for nm, g2, tot, pct in garbage[:4]])
 
     # downtown (most threes) and the charity stripe (most FTA)
     threes = sorted([(p["name"], sum(l.get("tpm") or 0 for l in p["log"])) for p in players], key=lambda x: -x[1])
