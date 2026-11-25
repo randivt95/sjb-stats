@@ -1527,18 +1527,6 @@ function viewAwards() {
       { h: "pts / reb / ast", fmt: r => `±${r.sw_pts} / ±${r.sw_reb} / ±${r.sw_ast}`, title: "Game-to-game swing (standard deviation) in each category" },
       { h: "G", fmt: r => r.rel_g, title: "Games used — every regular-season game with points, rebounds and assists recorded, including box-only games" }]);
 
-  const t = aw.titles || {};
-  const titleRow = (lab, w, unit) => w
-    ? `<div class="aw-title"><span class="aw-title-lbl">${lab}</span><span class="aw-title-nm">${playerLink(find(w.slug))}</span><span class="aw-title-val">${w[unit.key] == null ? "—" : w[unit.key]}${unit.suf || ""}</span></div>` : "";
-  const titles = `<div class="card">
-    <div class="award-head"><h2>Statistical titles</h2><span class="award-sub">${esc(S.label)} leaders</span></div>
-    <div class="aw-titles">
-      ${titleRow("Scoring", t.scoring, { key: "pts", suf: " pts" })}
-      ${titleRow("Rebounding", t.rebounding, { key: "reb", suf: " reb" })}
-      ${titleRow("Playmaking", t.playmaking, { key: "ast", suf: " ast" })}
-      ${titleRow("Efficiency", t.efficiency, { key: "ts", suf: "% TS" })}
-    </div></div>`;
-
   // all-time / career (not season-scoped)
   const AT = A.all_time || {};
   const miniList = (rows, fmt) => rows && rows.length
@@ -1552,15 +1540,36 @@ function viewAwards() {
   </div>`;
 
   const wins = AT.winners || [];
+  const awardCols = [["mvp", "MVP"], ["mip", "Most Improved"], ["dpoy", "Defensive"],
+                     ["clutch", "Clutch"], ["ironman", "Durability"], ["reliable", "Reliable"]];
+  const titleCols = [["scoring", "Scoring", " ppg"], ["rebounding", "Rebounding", " rpg"],
+                     ["playmaking", "Playmaking", " apg"], ["efficiency", "Efficiency", "% TS"]];
+  const honTitleCell = (w, suf, div) => {
+    const cls = `hon-tcol${div ? " hon-div" : ""}`;
+    if (!w) return `<td class="${cls}">—</td>`;
+    const mark = w.value == null ? "" : `<span class="hon-mark">${w.value}${suf}</span>`;
+    return `<td class="${cls}">${playerLink(find(w.slug))}${mark}</td>`;
+  };
   const honoursTable = wins.length ? `<div class="card"><h2>Roll of honours</h2>
-    <div class="table-scroll"><table class="stat">
-      <thead><tr>${["Season", "MVP", "Most Improved", "Defensive", "Clutch", "Durability", "Reliable"].map(h => th(h, { sortable: false })).join("")}</tr></thead>
+    <div class="table-scroll"><table class="stat hon">
+      <thead>
+        <tr>
+          <th rowspan="2" class="hon-season-h">Season</th>
+          <th colspan="${awardCols.length}" class="hon-grp">Awards <span class="hon-grp-sub">computed winners</span></th>
+          <th colspan="${titleCols.length}" class="hon-grp hon-grp-t hon-div">Statistical titles <span class="hon-grp-sub">category leaders</span></th>
+        </tr>
+        <tr>
+          ${awardCols.map(([, h]) => `<th>${h}</th>`).join("")}
+          ${titleCols.map(([, h], i) => `<th class="hon-tcol${i === 0 ? " hon-div" : ""}">${h}</th>`).join("")}
+        </tr>
+      </thead>
       <tbody>${wins.map(r => `<tr>
-        <td>${esc(r.label)}</td>
-        ${["mvp", "mip", "dpoy", "clutch", "ironman", "reliable"].map(k => `<td>${r[k] ? playerLink(find(r[k].slug)) : "—"}</td>`).join("")}
+        <td class="hon-season">${esc(r.label)}</td>
+        ${awardCols.map(([k]) => `<td>${r[k] ? playerLink(find(r[k].slug)) : "—"}</td>`).join("")}
+        ${titleCols.map(([k, , suf], i) => honTitleCell((r.titles || {})[k], suf, i === 0)).join("")}
       </tr>`).join("")}</tbody>
     </table></div>
-    <p class="muted" style="font-size:12px;margin-top:8px">Only concluded seasons are crowned; the current season is a live race above.</p></div>` : "";
+    <p class="muted" style="font-size:12px;margin-top:8px">Only concluded seasons are crowned; the current season is a live race above. Statistical titles are each category's season leader (minimum games applied).</p></div>` : "";
 
   // secondary award cards, two per row
   const secondary = [mip, dpoy, clutch, ironman, reliable].filter(Boolean);
@@ -1571,7 +1580,6 @@ function viewAwards() {
   return `${header}
     ${mvp}
     ${secHtml}
-    ${titles}
     <h2 class="aw-section">All-time</h2>
     ${honoursTable}
     ${careerCards}

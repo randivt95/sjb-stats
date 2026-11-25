@@ -1878,13 +1878,20 @@ def compute_awards(games, seasons_meta):
         "defense": sorted(car, key=lambda r: -r["stlblk"])[:5],
     }
     winners = []
+    # the statistical-title mark to carry for each category (ppg / rpg / apg / TS%)
+    TITLE_MARK = {"scoring": "pts", "rebounding": "reb", "playmaking": "ast", "efficiency": "ts"}
     for sk in order:
         s = out_seasons.get(sk)
         if not s or not s["is_final"]:
             continue
         aw = s["awards"]
-        winners.append({"label": s["label"], **{k: aw.get(k, {}).get("winner")
-                        for k in ("mvp", "mip", "dpoy", "clutch", "ironman", "reliable")}})
+        t = aw.get("titles", {})
+        titles_row = {cat: ({"name": w["name"], "slug": w["slug"], "value": w.get(mk)} if w else None)
+                      for cat, mk in TITLE_MARK.items() for w in [t.get(cat)]}
+        winners.append({"label": s["label"],
+                        **{k: aw.get(k, {}).get("winner")
+                           for k in ("mvp", "mip", "dpoy", "clutch", "ironman", "reliable")},
+                        "titles": titles_row})
 
     awards_data = {"order": order, "seasons": out_seasons,
                    "all_time": {"career_leaders": career_leaders, "winners": winners,

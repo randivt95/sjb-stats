@@ -327,6 +327,16 @@ table.stat.ladder-table tr.ladder-sjb td:first-child { box-shadow: inset 3px 0 0
 .aw-title-nm { font-weight: 600; }
 .aw-title-val { margin-left: auto; font-family: var(--mono); font-variant-numeric: tabular-nums; font-weight: 700; }
 .aw-share { font-size: 12px; font-weight: 600; color: var(--muted); font-family: var(--sans); margin-left: 6px; }
+/* roll of honours: awards + statistical titles grouped in one table */
+.hon .hon-grp { text-align: center; font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .5px; color: var(--navy); background: #dfe6ee; border-bottom: 1px solid var(--border-md); }
+.hon .hon-grp-t { color: #6b5300; background: #f3eddb; }
+.hon-grp-sub { display: block; margin-top: 1px; font-size: 10px; font-weight: 400;
+  text-transform: none; letter-spacing: 0; color: var(--faint); }
+.hon thead .hon-tcol { background: #f0e9d2; }
+.hon .hon-div { border-left: 2px solid var(--border-md); }
+.hon-mark { display: block; margin-top: 1px; font-size: 11px; color: var(--faint);
+  font-family: var(--mono); font-variant-numeric: tabular-nums; }
 /* frivolities */
 .card.friv h2 { font-size: 15px; }
 .friv-list { list-style: none; margin: 0; padding: 0; }
