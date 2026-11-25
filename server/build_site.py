@@ -2020,6 +2020,27 @@ def compute_frivolities(games, players):
     card("Individuals", "explosions", "Most points in a game", "",
          [it(f"{l['pts']} pts", players=[_fp(nm)], game={"id": l["game_id"], "label": f"vs {l['opponent']}"}) for nm, l in explode])
 
+    # hero ball (biggest share of the team's points in a single game)
+    hero = []
+    for g in games:
+        box = g.get("box_us") or []
+        tot = sum(p.get("pts") or 0 for p in box)
+        if tot < 30:
+            continue
+        for p in box:
+            pts = p.get("pts") or 0
+            if pts >= 15:
+                hero.append((100 * pts / tot, pts, tot, p["name"], g))
+    hero.sort(key=lambda x: -x[0])
+    seen_hero, hero_u = set(), []           # one entry per player — their biggest night
+    for row in hero:
+        if row[3] in seen_hero:
+            continue
+        seen_hero.add(row[3]); hero_u.append(row)
+    card("Individuals", "heroball", "Hero ball", "biggest share of the team's points in a single game",
+         [it(f"{round(sh)}%", players=[_fp(nm)], game={"id": g["id"], "label": f"vs {g['opponent']}"},
+             sub=f"{pts}/{tot} pts") for sh, pts, tot, nm, g in hero_u[:5]])
+
     # longest iron-man streak (consecutive games played). The sequence is the
     # contested games only — forfeits weren't played by anyone, so they don't
     # break a run. A player "appeared" if the game has their minutes OR (for a
@@ -2084,6 +2105,19 @@ def compute_frivolities(games, players):
     card("Individuals", "floor-general", "Floor generals", "best assist-to-turnover ratio",
          [it(f"{r}", players=[_fp(nm)], sub=f"{a} ast / {t} to") for nm, a, t, r in ratio[:4]])
 
+    # set-up merchants (highest share of FG makes that were assisted by a teammate)
+    assisted = defaultdict(lambda: [0, 0])     # name -> [assisted makes, total FG makes]
+    for g in games:
+        for e in (g.get("pbp") or []):
+            if e.get("team") == "us" and e.get("kind") in ("TwoPointFG", "ThreePointFG"):
+                assisted[e["who"]][1] += 1
+                if e.get("assist"):
+                    assisted[e["who"]][0] += 1
+    setup = sorted([(nm, a, t, round(100 * a / t)) for nm, (a, t) in assisted.items() if t >= 20],
+                   key=lambda x: -x[3])
+    card("Individuals", "setup", "Set-up merchants", "highest share of field goals set up by a teammate (20+ makes)",
+         [it(f"{pct}%", players=[_fp(nm)], sub=f"{a}/{t} FG assisted") for nm, a, t, pct in setup[:4]])
+
     # first blood (team's opening basket scorer)
     first = Counter()
     for g in games:
@@ -2093,6 +2127,18 @@ def compute_frivolities(games, players):
                 break
     card("Individuals", "first-blood", "First blood", "who scores the team's opening basket most",
          [it(str(c), players=[_fp(nm)]) for nm, c in first.most_common(4)])
+
+    # the closer (team's final basket scorer)
+    last_bucket = Counter()
+    for g in games:
+        who = None
+        for e in (g.get("pbp") or []):
+            if e.get("score") and e.get("team") == "us":
+                who = e["who"]
+        if who:
+            last_bucket[who] += 1
+    card("Individuals", "closer", "The closer", "who scores the team's final basket most",
+         [it(str(c), players=[_fp(nm)]) for nm, c in last_bucket.most_common(4)])
 
     # second-half specialist (share of own points scored in the final half)
     sh = defaultdict(lambda: [0, 0])     # name -> [2h pts, total pts]
@@ -2132,6 +2178,17 @@ def compute_frivolities(games, players):
     stocks = sorted([(p["name"], round((sum(l.get('stl') or 0 for l in p['log']) + sum(l.get('blk') or 0 for l in p['log'])) / max(p['games'], 1), 1)) for p in players if p["games"] >= 6], key=lambda x: -x[1])
     card("Individuals", "stocks", "Stocks per game", "steals + blocks",
          [it(f"{v}", players=[_fp(nm)]) for nm, v in stocks[:4]])
+
+    # glass cleaner (most offensive rebounds)
+    glass = []
+    for p in players:
+        tot = sum(l.get("oreb") or 0 for l in p["log"])
+        gtrk = sum(1 for l in p["log"] if l.get("oreb") is not None)
+        if gtrk >= 6 and tot:
+            glass.append((p["name"], tot, round(tot / gtrk, 1)))
+    glass.sort(key=lambda x: -x[1])
+    card("Individuals", "glass", "Glass cleaner", "most offensive rebounds (career)",
+         [it(str(tot), players=[_fp(nm)], sub=f"{pg}/g") for nm, tot, pg in glass[:4]])
 
     # the microwave: most points in a single half (from the play-by-play)
     half_pts = []
@@ -2246,6 +2303,11 @@ def compute_frivolities(games, players):
     high = sorted(real, key=lambda g: -g["us"])[:3]
     card("Game shape", "high-scoring", "Points flurry", "the team's highest-scoring games",
          [it(f"{g['us']} pts", game={"id": g["id"], "label": glabel(g)}, sub=f"{g['result']} vs {g['opponent']}") for g in high])
+
+    # lockdown — fewest points allowed (defensive twin of Points flurry)
+    low_allowed = sorted((g for g in real if g.get("them") is not None), key=lambda g: g["them"])[:4]
+    card("Game shape", "lockdown", "Lockdown", "fewest points allowed",
+         [it(f"{g['them']} allowed", game={"id": g["id"], "label": glabel(g)}, sub=f"{g['result']} {g['us']}-{g['them']}") for g in low_allowed])
 
     return cards
 
