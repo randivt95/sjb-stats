@@ -1631,7 +1631,24 @@ function viewFrivolities() {
 }
 
 /* ---- router ------------------------------------------------------------- */
+// Scroll restoration: remember where each history entry was scrolled to, so
+// Back/Forward return you to that spot instead of the top. Fresh navigations
+// (clicking a link) have no saved spot, so they still start at the top.
+if ("scrollRestoration" in history) history.scrollRestoration = "manual";
+const _scrollPos = new Map();
+let _navKey = null;
+function _ensureKey() {
+  const st = history.state || {};
+  if (!st.k) {
+    const k = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+    history.replaceState({ ...st, k }, "");
+  }
+  return history.state.k;
+}
+
 function route() {
+  // save the scroll position of the page we're leaving, under its own key
+  if (_navKey !== null) _scrollPos.set(_navKey, window.scrollY);
   const hash = location.hash.replace(/^#\/?/, "");
   const parts = hash.split("/");
   const seg = parts[0], arg = parts[1];
@@ -1679,7 +1696,10 @@ function route() {
     const target = a.getAttribute("href").replace(/^#\/?/, "");
     a.classList.toggle("active", target === seg || (target === "" && seg === ""));
   });
-  window.scrollTo(0, 0);
+  // restore this entry's remembered scroll (Back/Forward), else start at top
+  _navKey = _ensureKey();
+  const saved = _scrollPos.get(_navKey);
+  window.scrollTo(0, saved != null ? saved : 0);
 }
 
 async function boot() {
