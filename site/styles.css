@@ -360,6 +360,14 @@ table.stat.ladder-table tr.ladder-sjb td:first-child { box-shadow: inset 3px 0 0
 @keyframes friv-live-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .55; } }
 .friv-join { color: var(--faint); margin: 0 3px; }
 .friv-val { flex: 0 0 auto; font-family: var(--mono); font-variant-numeric: tabular-nums; font-weight: 700; white-space: nowrap; }
+.card.friv h2 a.friv-title-link { color: inherit; }
+.card.friv h2 a.friv-title-link:hover { color: var(--link); text-decoration: underline; }
+.friv-all { display: inline-block; margin-top: 9px; font-size: 11.5px; font-weight: 700; color: var(--link); }
+.back-link { display: inline-block; font-size: 12px; font-weight: 700; color: var(--link); margin-bottom: 4px; }
+/* full-ranking drill-down table */
+table.friv-full td.friv-rank { color: var(--faint); width: 34px; }
+table.friv-full td.friv-val-cell { font-weight: 700; }
+table.friv-full td.friv-sub-cell { font-size: 11.5px; white-space: nowrap; }
 /* home MVP-race widget */
 .mvp-race { display: flex; flex-direction: column; gap: 2px; }
 .mvpr-row { display: flex; align-items: center; gap: 10px; padding: 6px 2px; border-bottom: 1px solid #ededed; font-size: 13px; }

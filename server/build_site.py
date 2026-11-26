@@ -1928,11 +1928,17 @@ def compute_frivolities(games, players):
     from collections import Counter, defaultdict
     cards = []
 
-    def card(section, cid, title, note, items):
+    def card(section, cid, title, note, items, full=None):
         items = [it for it in items if it]
-        if items:
-            cards.append({"section": section, "id": cid, "title": title,
-                          "note": note, "items": items})
+        if not items:
+            return
+        entry = {"section": section, "id": cid, "title": title,
+                 "note": note, "items": items}
+        if full is not None:
+            full = [it for it in full if it]
+            if len(full) > len(items):      # expose a "see every ranking" drill-down
+                entry["full"] = full
+        cards.append(entry)
 
     def it(val, players=None, game=None, label=None, sub="", join=" + ", live=False):
         d = {"val": val, "sub": sub, "join": join}
@@ -2004,21 +2010,22 @@ def compute_frivolities(games, players):
         for l in p["log"]:
             if sum(1 for v in (l.get("pts"), l.get("reb"), l.get("ast")) if (v or 0) >= 10) >= 2:
                 dd[p["name"]] += 1
+    dd_items = [it(str(c), players=[_fp(nm)]) for nm, c in dd.most_common()]
     card("Individuals", "double-doubles", "Double doubles", "games with 10+ in two of pts / reb / ast",
-         [it(str(c), players=[_fp(nm)]) for nm, c in dd.most_common(6)])
+         dd_items[:6], full=dd_items)
 
     # best single games (GmSc) and scoring explosions (pts)
     alllines = []
     for p in players:
         for l in p["log"]:
             alllines.append((p["name"], l))
-    best_g = sorted([x for x in alllines if x[1].get("gmsc") is not None], key=lambda x: -x[1]["gmsc"])[:6]
-    card("Individuals", "best-games", "Career-best games", "",
-         [it(f"{l['gmsc']:.1f} GmSc", players=[_fp(nm)], game={"id": l["game_id"], "label": f"vs {l['opponent']}"},
-             sub=f"{l['pts']} pts") for nm, l in best_g])
-    explode = sorted([x for x in alllines if x[1].get("pts") is not None], key=lambda x: -x[1]["pts"])[:6]
-    card("Individuals", "explosions", "Most points in a game", "",
-         [it(f"{l['pts']} pts", players=[_fp(nm)], game={"id": l["game_id"], "label": f"vs {l['opponent']}"}) for nm, l in explode])
+    best_all = sorted([x for x in alllines if x[1].get("gmsc") is not None], key=lambda x: -x[1]["gmsc"])
+    best_items = [it(f"{l['gmsc']:.1f} GmSc", players=[_fp(nm)], game={"id": l["game_id"], "label": f"vs {l['opponent']}"},
+                     sub=f"{l['pts']} pts") for nm, l in best_all]
+    card("Individuals", "best-games", "Career-best games", "", best_items[:6], full=best_items)
+    explode_all = sorted([x for x in alllines if x[1].get("pts") is not None], key=lambda x: -x[1]["pts"])
+    explode_items = [it(f"{l['pts']} pts", players=[_fp(nm)], game={"id": l["game_id"], "label": f"vs {l['opponent']}"}) for nm, l in explode_all]
+    card("Individuals", "explosions", "Most points in a game", "", explode_items[:6], full=explode_items)
 
     # hero ball (biggest share of the team's points in a single game)
     hero = []
@@ -2032,14 +2039,16 @@ def compute_frivolities(games, players):
             if pts >= 15:
                 hero.append((100 * pts / tot, pts, tot, p["name"], g))
     hero.sort(key=lambda x: -x[0])
-    seen_hero, hero_u = set(), []           # one entry per player — their biggest night
+    _hero_it = lambda sh, pts, tot, nm, g: it(f"{round(sh)}%", players=[_fp(nm)],
+                                              game={"id": g["id"], "label": f"vs {g['opponent']}"}, sub=f"{pts}/{tot} pts")
+    hero_full = [_hero_it(*row) for row in hero]          # every qualifying game
+    seen_hero, hero_top = set(), []                       # card: one (biggest) night per player
     for row in hero:
         if row[3] in seen_hero:
             continue
-        seen_hero.add(row[3]); hero_u.append(row)
+        seen_hero.add(row[3]); hero_top.append(_hero_it(*row))
     card("Individuals", "heroball", "Hero ball", "biggest share of the team's points in a single game",
-         [it(f"{round(sh)}%", players=[_fp(nm)], game={"id": g["id"], "label": f"vs {g['opponent']}"},
-             sub=f"{pts}/{tot} pts") for sh, pts, tot, nm, g in hero_u[:5]])
+         hero_top[:5], full=hero_full)
 
     # longest iron-man streak (consecutive games played). The sequence is the
     # contested games only — forfeits weren't played by anyone, so they don't
@@ -2081,8 +2090,9 @@ def compute_frivolities(games, players):
     # plus/minus kings (career per-game, min 6 g)
     pm = [(p, p["plus_minus_avg"]) for p in players if p["games"] >= 6 and p.get("plus_minus_avg") is not None]
     pm.sort(key=lambda x: -x[1])
+    pm_items = [it(f"{v:+.1f}", players=[_fp(p['name'])]) for p, v in pm]
     card("Individuals", "pm", "Plus/minus kings", "best on-court margin per game (6+ games)",
-         [it(f"{v:+.1f}", players=[_fp(p['name'])]) for p, v in pm[:5]])
+         pm_items[:5], full=pm_items)
 
     # foul trouble
     foul = []
@@ -2092,8 +2102,9 @@ def compute_frivolities(games, players):
             fouts = sum(1 for l in ls if (l.get("foul") or 0) >= 5)
             foul.append((p["name"], round(sum(l["foul"] for l in ls) / len(ls), 1), fouts))
     foul.sort(key=lambda x: -x[1])
+    foul_items = [it(f"{fpg}", players=[_fp(nm)], sub=(f"{fo} foul-out{'s' if fo != 1 else ''}" if fo else "")) for nm, fpg, fo in foul]
     card("Individuals", "fouls", "Foul magnets", "fouls per game (and times fouled out)",
-         [it(f"{fpg}", players=[_fp(nm)], sub=(f"{fo} foul-out{'s' if fo != 1 else ''}" if fo else "")) for nm, fpg, fo in foul[:4]])
+         foul_items[:4], full=foul_items)
 
     # floor general vs giveaway-prone (AST:TO)
     ratio = []
@@ -2102,8 +2113,9 @@ def compute_frivolities(games, players):
         if a + t >= 15:
             ratio.append((p["name"], a, t, round(a / t, 2) if t else a))
     ratio.sort(key=lambda x: -x[3])
+    fg_items = [it(f"{r}", players=[_fp(nm)], sub=f"{a} ast / {t} to") for nm, a, t, r in ratio]
     card("Individuals", "floor-general", "Floor generals", "best assist-to-turnover ratio",
-         [it(f"{r}", players=[_fp(nm)], sub=f"{a} ast / {t} to") for nm, a, t, r in ratio[:4]])
+         fg_items[:4], full=fg_items)
 
     # set-up merchants (highest share of FG makes that were assisted by a teammate)
     assisted = defaultdict(lambda: [0, 0])     # name -> [assisted makes, total FG makes]
@@ -2115,8 +2127,9 @@ def compute_frivolities(games, players):
                     assisted[e["who"]][0] += 1
     setup = sorted([(nm, a, t, round(100 * a / t)) for nm, (a, t) in assisted.items() if t >= 20],
                    key=lambda x: -x[3])
+    setup_items = [it(f"{pct}%", players=[_fp(nm)], sub=f"{a}/{t} FG assisted") for nm, a, t, pct in setup]
     card("Individuals", "setup", "Set-up merchants", "highest share of field goals set up by a teammate (20+ makes)",
-         [it(f"{pct}%", players=[_fp(nm)], sub=f"{a}/{t} FG assisted") for nm, a, t, pct in setup[:4]])
+         setup_items[:4], full=setup_items)
 
     # first blood (team's opening basket scorer)
     first = Counter()
@@ -2154,8 +2167,9 @@ def compute_frivolities(games, players):
                     sh[e["who"]][0] += e["pts"]
     secondhalf = sorted([(nm, v[0], v[1], round(100 * v[0] / v[1])) for nm, v in sh.items() if v[1] >= 30],
                         key=lambda x: -x[3])
+    sh_items = [it(f"{pct}%", players=[_fp(nm)], sub=f"{h2}/{tot} pts") for nm, h2, tot, pct in secondhalf]
     card("Individuals", "second-half", "Second-half merchants", "share of personal points scored after the break (30+ pts)",
-         [it(f"{pct}%", players=[_fp(nm)], sub=f"{h2}/{tot} pts") for nm, h2, tot, pct in secondhalf[:4]])
+         sh_items[:4], full=sh_items)
 
     # garbage-time merchant (share of own points scored with a 20+ lead already banked)
     GT_LEAD = 20
@@ -2168,16 +2182,19 @@ def compute_frivolities(games, players):
                     gt[e["who"]][0] += e["pts"]
     garbage = sorted([(nm, v[0], v[1], round(100 * v[0] / v[1])) for nm, v in gt.items() if v[1] >= 30],
                      key=lambda x: -x[3])
+    gt_items = [it(f"{pct}%", players=[_fp(nm)], sub=f"{g2}/{tot} pts") for nm, g2, tot, pct in garbage]
     card("Individuals", "garbage-time", "Garbage-time merchants", "share of personal points scored with a 20+ lead already banked (30+ pts)",
-         [it(f"{pct}%", players=[_fp(nm)], sub=f"{g2}/{tot} pts") for nm, g2, tot, pct in garbage[:4]])
+         gt_items[:4], full=gt_items)
 
     # downtown (most threes) and the charity stripe (most FTA)
     threes = sorted([(p["name"], sum(l.get("tpm") or 0 for l in p["log"])) for p in players], key=lambda x: -x[1])
+    down_items = [it(str(c), players=[_fp(nm)]) for nm, c in threes if c]
     card("Individuals", "downtown", "Downtown", "most three-pointers made (career)",
-         [it(str(c), players=[_fp(nm)]) for nm, c in threes[:4] if c])
+         down_items[:4], full=down_items)
     stocks = sorted([(p["name"], round((sum(l.get('stl') or 0 for l in p['log']) + sum(l.get('blk') or 0 for l in p['log'])) / max(p['games'], 1), 1)) for p in players if p["games"] >= 6], key=lambda x: -x[1])
+    stocks_items = [it(f"{v}", players=[_fp(nm)]) for nm, v in stocks]
     card("Individuals", "stocks", "Stocks per game", "steals + blocks",
-         [it(f"{v}", players=[_fp(nm)]) for nm, v in stocks[:4]])
+         stocks_items[:4], full=stocks_items)
 
     # glass cleaner (most offensive rebounds)
     glass = []
@@ -2187,8 +2204,9 @@ def compute_frivolities(games, players):
         if gtrk >= 6 and tot:
             glass.append((p["name"], tot, round(tot / gtrk, 1)))
     glass.sort(key=lambda x: -x[1])
+    glass_items = [it(str(tot), players=[_fp(nm)], sub=f"{pg}/g") for nm, tot, pg in glass]
     card("Individuals", "glass", "Glass cleaner", "most offensive rebounds (career)",
-         [it(str(tot), players=[_fp(nm)], sub=f"{pg}/g") for nm, tot, pg in glass[:4]])
+         glass_items[:4], full=glass_items)
 
     # the microwave: most points in a single half (from the play-by-play)
     half_pts = []
@@ -2203,8 +2221,9 @@ def compute_frivolities(games, players):
         for (nm, h), pts in agg.items():
             half_pts.append((pts, nm, h, g))
     half_pts.sort(key=lambda x: -x[0])
+    micro_items = [it(f"{pts} in H{h}", players=[_fp(nm)], game=glink(g)) for pts, nm, h, g in half_pts]
     card("Individuals", "microwave", "The microwave", "most points in a single half",
-         [it(f"{pts} in H{h}", players=[_fp(nm)], game=glink(g)) for pts, nm, h, g in half_pts[:4]])
+         micro_items[:4], full=micro_items)
 
     # go-to scorer: most shot attempts per game (tracked games)
     goto = []
@@ -2213,13 +2232,15 @@ def compute_frivolities(games, players):
         if len(fgas) >= 6:
             goto.append((p["name"], round(sum(fgas) / len(fgas), 1), sum(fgas)))
     goto.sort(key=lambda x: -x[1])
+    goto_items = [it(f"{fpg}", players=[_fp(nm)], sub=f"{tot} FGA") for nm, fpg, tot in goto]
     card("Individuals", "goto", "Go-to scorer", "most shot attempts per game (6+ tracked games)",
-         [it(f"{fpg}", players=[_fp(nm)], sub=f"{tot} FGA") for nm, fpg, tot in goto[:4]])
+         goto_items[:4], full=goto_items)
 
     # living at the line: most free-throw attempts
     fta = sorted([(p["name"], sum(l.get("fta") or 0 for l in p["log"])) for p in players], key=lambda x: -x[1])
+    ft_items = [it(f"{tot} FTA", players=[_fp(nm)]) for nm, tot in fta if tot]
     card("Individuals", "freethrows", "Living at the line", "most free-throw attempts (career)",
-         [it(f"{tot} FTA", players=[_fp(nm)]) for nm, tot in fta[:4] if tot])
+         ft_items[:4], full=ft_items)
 
     # iron lungs: most minutes played in a single game
     mins = []
@@ -2228,8 +2249,9 @@ def compute_frivolities(games, players):
             if l.get("min") is not None:
                 mins.append((l["min"], p["name"], l))
     mins.sort(key=lambda x: -x[0])
+    mins_items = [it(f"{m:g} min", players=[_fp(nm)], game={"id": l["game_id"], "label": f"vs {l['opponent']}"}) for m, nm, l in mins]
     card("Individuals", "ironlungs", "Iron lungs", "most minutes played in a single game",
-         [it(f"{m:g} min", players=[_fp(nm)], game={"id": l["game_id"], "label": f"vs {l['opponent']}"}) for m, nm, l in mins[:4]])
+         mins_items[:4], full=mins_items)
 
     # stat-sheet stuffer: games with a point, rebound, assist, steal AND block
     stuffer = Counter()

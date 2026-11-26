@@ -1617,17 +1617,44 @@ function viewFrivolities() {
     return `<div class="page-head"><h1>Frivolities</h1></div><div class="card"><p class="muted">Nothing here yet.</p></div>${footer()}`;
   const order = [], bySec = {};
   for (const c of F) { if (!bySec[c.section]) { bySec[c.section] = []; order.push(c.section); } bySec[c.section].push(c); }
-  const cardHtml = c => `<div class="card friv">
-    <div class="award-head"><h2>${esc(c.title)}</h2>${c.note ? `<span class="award-sub">${esc(c.note)}</span>` : ""}</div>
+  const cardHtml = c => {
+    const href = `#/frivolity/${encodeURIComponent(c.id)}`;
+    const title = c.full ? `<a class="friv-title-link" href="${href}">${esc(c.title)}</a>` : esc(c.title);
+    return `<div class="card friv">
+    <div class="award-head"><h2>${title}</h2>${c.note ? `<span class="award-sub">${esc(c.note)}</span>` : ""}</div>
     <ul class="friv-list">${c.items.map(it => `<li class="friv-row">
       <span class="friv-main">${frivLabel(it)}${it.live ? ` <span class="friv-live" title="Still active — this streak is ongoing">● live</span>` : ""}${it.sub ? ` <span class="friv-sub">${esc(it.sub)}</span>` : ""}</span>
       <span class="friv-val">${esc(it.val)}</span>
     </li>`).join("")}</ul>
+    ${c.full ? `<a class="friv-all" href="${href}">See all ${c.full.length} ranked →</a>` : ""}
   </div>`;
+  };
   const body = order.map(sec => `<h2 class="aw-section">${esc(sec)}</h2>
     <div class="grid cols-2">${bySec[sec].map(cardHtml).join("")}</div>`).join("");
   return `<div class="page-head"><h1>Frivolities</h1></div>
     ${body}${footer()}`;
+}
+
+function viewFrivolityFull(id) {
+  const F = DATA.frivolities || [];
+  const c = F.find(x => x.id === id);
+  if (!c || !c.full)
+    return `<div class="page-head"><a class="back-link" href="#/frivolities">← Frivolities</a><h1>Full ranking</h1></div>
+      <div class="card"><p class="muted">That ranking isn't available.</p></div>${footer()}`;
+  const hasGame = c.full.some(x => x.game);
+  const hasSub = c.full.some(x => x.sub);
+  const rows = c.full.map((it, i) => `<tr>
+    <td class="num friv-rank">${i + 1}</td>
+    <td>${frivLabel(it)}${it.live ? ` <span class="friv-live" title="Still active — this streak is ongoing">● live</span>` : ""}</td>
+    ${hasSub ? `<td class="muted friv-sub-cell">${it.sub ? esc(it.sub) : ""}</td>` : ""}
+    <td class="num friv-val-cell">${esc(it.val)}</td>
+  </tr>`).join("");
+  return `<div class="page-head"><a class="back-link" href="#/frivolities">← Frivolities</a>
+      <h1>${esc(c.title)}</h1>${c.note ? `<p class="muted">${esc(c.note)}</p>` : ""}</div>
+    <div class="card"><table class="stat friv-full">
+      <thead><tr><th class="num">#</th><th>${hasGame ? "Player · game" : "Player"}</th>${hasSub ? "<th></th>" : ""}<th class="num">Value</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>${footer()}`;
 }
 
 /* ---- router ------------------------------------------------------------- */
@@ -1665,6 +1692,7 @@ function route() {
     case "ladder": html = viewLadder(); break;
     case "awards": html = viewAwards(); break;
     case "frivolities": html = viewFrivolities(); break;
+    case "frivolity": html = viewFrivolityFull(decodeURIComponent(arg || "")); break;
     case "glossary": html = viewGlossary(); break;
     default: html = viewHome();
   }
